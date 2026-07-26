@@ -1,0 +1,57 @@
+/* Five practice directions form a capability map rather than a course list. */
+.project-grid { grid-template-columns: repeat(5, 1fr); }
+.club-mascot { position: absolute; z-index: 2; right: -12%; bottom: -2%; height: 94%; max-width: 120%; object-fit: contain; object-position: bottom center; filter: drop-shadow(5px 5px 0 var(--ink)); }
+.poster-stamp, .poster-mark, .poster-orbit { z-index: 3; }
+.mascot-credit { position: absolute; z-index: 4; left: 1rem; bottom: 1rem; margin: 0; padding: .45rem .55rem; background: var(--paper); color: var(--ink); border: 2px solid var(--ink); font-size: 12px; line-height: 1.35; }
+.mascot-credit span { font-family: monospace; font-size: 10px; }
+.desktop-mascot { display: none; }
+
+@media (min-width: 761px) {
+  .hero-copy { padding-right: 20vw; }
+  .club-mascot, .mascot-credit { display: none; }
+  .desktop-mascot { display: block; position: absolute; z-index: 2; right: 1%; bottom: 0; height: 88%; width: 34%; }
+  .desktop-mascot img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: bottom center; filter: drop-shadow(5px 5px 0 var(--ink)); }
+  .desktop-mascot p { position: absolute; z-index: 3; top: 8%; right: 0; margin: 0; padding: .45rem .55rem; background: var(--paper); border: 2px solid var(--ink); color: var(--ink); font-size: 12px; line-height: 1.35; white-space: nowrap; }
+  .desktop-mascot span { font-family: monospace; font-size: 10px; }
+}
+.hero-join { display: inline-flex; gap: 1.5rem; align-items: center; margin-top: .5rem; padding: .7rem 1rem; background: var(--ink); color: var(--paper); box-shadow: 4px 4px 0 var(--red); font-size: 14px; font-weight: 400; text-decoration: none; }
+.hero-join:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--red); }
+.project:nth-child(3) { border-right: var(--line); }
+.project:nth-child(5) { border-right: 0; }
+
+@media (max-width: 1100px) {
+  .project-grid { grid-template-columns: repeat(2, 1fr); }
+  .project:nth-child(2), .project:nth-child(4) { border-right: 0; }
+  .project:nth-child(3) { border-right: var(--line); border-bottom: var(--line); }
+}
+
+@media (max-width: 760px) {
+  .project-grid { grid-template-columns: 1fr; }
+  .project:nth-child(3) { border-right: 0; }
+  .hero-join { font-size: 12px; gap: .75rem; padding: .6rem .7rem; }
+  .club-mascot { right: 3%; height: 105%; max-width: 86%; }
+  .mascot-credit { left: .7rem; bottom: .7rem; font-size: 11px; }
+}
+
+.club-proof { display: grid; grid-template-columns: 1.1fr 1fr; gap: 0; border-bottom: var(--line); }
+.play-note { padding: 70px 8vw; border-right: var(--line); background: var(--paper); }
+.play-note h2 { margin: 22px 0 35px; font: 400 clamp(42px, 5vw, 78px) /.9 Nano, sans-serif; letter-spacing: -.07em; }
+.play-note h2 span { color: var(--red); }
+.play-note > p:not(.section-index) { max-width: 520px; font-size: 16px; line-height: 1.85; }
+.proof-stack { display: grid; grid-template-rows: 1fr 1fr; }
+.proof-card { min-height: 275px; padding: 32px 38px; color: var(--ink); }
+.proof-card h3 { margin: 14px 0; font: 400 clamp(32px, 3.8vw, 56px) /.9 Nano, sans-serif; letter-spacing: -.06em; }
+.proof-card p, .proof-card li { font-size: 14px; line-height: 1.7; }
+.proof-card a { color: inherit; font-weight: 400; }
+.proof-card > a { display: inline-block; margin-top: 8px; font-family: monospace; font-size: 12px; }
+.blue-card { background: var(--blue); border-bottom: var(--line); }
+.red-card { background: var(--red); }
+.card-label { margin: 0; font: 400 11px monospace !important; letter-spacing: .1em; }
+.red-card ul { margin: 10px 0; padding-left: 18px; }
+.red-card li + li { margin-top: 9px; }
+
+@media (max-width: 760px) {
+  .club-proof { grid-template-columns: 1fr; }
+  .play-note { padding: 50px 20px; border-right: 0; border-bottom: var(--line); }
+  .proof-card { padding: 28px 20px; min-height: auto; }
+}

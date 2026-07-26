@@ -1,7 +1,9 @@
 export const projects = [
-  { number: '01', tag: 'FIELD SUPPORT', title: '班级数字\n急救箱', description: '把日常维护经验整理成可复用的清单、工具与说明，让“不会用”少一点。', tone: 'yellow', decoration: '✚' },
-  { number: '02', tag: 'BUILD LAB', title: '小工具\n试验场', description: '从一个不顺手的瞬间开始，用代码、自动化和网页把它变得更好一点。', tone: 'blue', decoration: '</>\n0010\n1101' },
-  { number: '03', tag: 'OPEN ARCHIVE', title: '校园创作\n公开存档', description: '把作品、教程和失败的记录留下来。下一位好奇的人，不必从零开始。', tone: 'red', decoration: 'PUBLIC\nACCESS' }
+  { number: '01', tag: 'KEEP IT RUNNING', title: '设备\n维修', description: '联动南方中学电教委员交流网站，用学生的力量维护一体机等校园电教设备。', tone: 'yellow', decoration: '✚' },
+  { number: '02', tag: 'MAKE IT PHYSICAL', title: '硬件\n开发', description: '从 STM32、树莓派到传感器，把一个想法接上电、写进现实。', tone: 'blue', decoration: '0101\n1010' },
+  { number: '03', tag: 'MAKE IT USEFUL', title: '软件\n开发', description: '语言不是门槛。用你喜欢的方式，做解决真实问题的小工具。', tone: 'red', decoration: 'PUBLIC\nACCESS' },
+  { number: '04', tag: 'MAKE IT VISIBLE', title: '网页\n前端', description: '让信息清楚、让交互顺手，也让一页网页拥有自己的态度。', tone: 'blue', decoration: '{ }' },
+  { number: '05', tag: 'MAKE IT HEARD', title: '音视频\n剪辑', description: '用镜头、声音和节奏记录校园，把一个好点子讲成故事。', tone: 'yellow', decoration: '▶' }
 ]
 
 export const principles = [
