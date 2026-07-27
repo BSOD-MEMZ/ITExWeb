@@ -36,6 +36,9 @@ npm run build
 # 生成静态站点
 npm run generate
 
+# 根据当前文案重新压缩网页字体
+npm run fonts:subset
+
 # 本地预览生产构建
 npm run preview
 ```
@@ -60,6 +63,18 @@ ITEx/
 - 调整首页文案、奖项和联动信息：编辑 `pages/index.vue`。
 - 调整布局与视觉：优先编辑 `assets/css/skills.css`；基础设计 token 位于 `assets/css/main.css`。
 - 水原雫（Shizuku Mizuhara）立绘署名：由 2511 Imgreenhand 绘制。
+
+## 字体子集化
+
+字体压缩不是实时自动完成的。每次新增或修改会显示在网站上的文字后，在发布前执行一次：
+
+```bash
+python -m pip install -r requirements-dev.txt
+npm run fonts:subset
+npm run generate
+```
+
+脚本会从 `font-source/` 的原始字体生成 `public/fonts/` 中的网页子集字体。原始字体保留在项目内，避免新增文字时丢失字形。
 
 ## 参与原则
 

@@ -76,6 +76,27 @@
 .merch-note b { font: 400 26px/.9 Nano, sans-serif; }
 .merch-note span { max-width: 270px; font-size: 13px; line-height: 1.6; }
 
+.team-section { border-bottom: var(--line); background: var(--blue); color: var(--ink); }
+.team-heading { display: grid; grid-template-columns: 1fr 1.35fr 1fr; gap: 20px; padding: 64px 8vw 38px; border-bottom: var(--line); }
+.team-heading h2 { margin: 0; font: 400 clamp(48px, 6.5vw, 96px) /.84 Nano, sans-serif; letter-spacing: -.07em; }
+.team-heading h2 span { color: var(--yellow); text-shadow: 3px 3px 0 var(--ink); }
+.team-heading > p:last-child { margin: 0; align-self: end; font-size: 15px; line-height: 1.7; }
+.team-content { display: grid; grid-template-columns: 1fr 31%; }
+.member-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+.member-card { min-height: 205px; display: flex; flex-direction: column; justify-content: space-between; padding: 18px; border-right: var(--line); border-bottom: var(--line); background: var(--paper); }
+.member-card:nth-child(3n) { border-right: 0; }
+.member-card:nth-last-child(-n + 3) { border-bottom: 0; }
+.member-card img { width: 78px; height: 78px; object-fit: cover; border: 3px solid var(--ink); box-shadow: 5px 5px 0 var(--red); }
+.member-card p { margin: 0 0 5px; font: 400 11px monospace; letter-spacing: .06em; }
+.member-card h3 { margin: 0; font: 400 24px/.95 Nano, sans-serif; letter-spacing: -.04em; overflow-wrap: anywhere; }
+.member-card span { display: inline-block; margin-top: 7px; padding: 2px 5px; background: var(--yellow); border: 2px solid var(--ink); font: 400 11px monospace; }
+.speaker-note { display: flex; flex-direction: column; justify-content: space-between; padding: 28px; background: var(--red); border-left: var(--line); }
+.speaker-note h3 { margin: 18px 0; font: 400 clamp(40px, 4.8vw, 70px) /.84 Nano, sans-serif; letter-spacing: -.07em; }
+.speaker-note > p:not(.section-index) { font-size: 15px; line-height: 1.75; }
+.speaker-note a { width: max-content; padding: 10px 12px; background: var(--ink); color: var(--paper); box-shadow: 4px 4px 0 var(--yellow); font: 400 12px monospace; text-decoration: none; }
+.manifesto > :not(.statement) { position: relative; z-index: 1; }
+.statement { z-index: 0; }
+
 @media (max-width: 760px) {
   .club-proof { grid-template-columns: 1fr; }
   .play-note { padding: 50px 20px; border-right: 0; border-bottom: var(--line); }
@@ -87,4 +108,14 @@
   .merch-display { min-height: 540px; }
   .pin-stage { min-height: 345px; }
   .merch-note { align-items: start; flex-direction: column; gap: 8px; }
+  .team-heading { display: block; padding: 50px 20px 30px; }
+  .team-heading h2 { margin: 18px 0; font-size: 60px; }
+  .team-content { grid-template-columns: 1fr; }
+  .member-grid { grid-template-columns: repeat(2, 1fr); }
+  .member-card { min-height: 180px; }
+  .member-card:nth-child(3n) { border-right: var(--line); }
+  .member-card:nth-child(2n) { border-right: 0; }
+  .member-card:nth-last-child(-n + 3) { border-bottom: var(--line); }
+  .member-card:nth-last-child(-n + 2) { border-bottom: 0; }
+  .speaker-note { min-height: 330px; border-left: 0; border-top: var(--line); }
 }

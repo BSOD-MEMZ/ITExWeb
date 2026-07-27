@@ -12,3 +12,12 @@ export const principles = [
   ['03', '可以提问，也可以说“我不知道”。', 'STAY CURIOUS'],
   ['04', '尊重规则，也保留创造力。', 'THINK RESPONSIBLY']
 ]
+
+export const members = [
+  { name: '@Cookie', role: '社长', avatar: '/images/avatar/cookie.jpg' },
+  { name: '@AbCd', role: '副社长 · 技术总管',avatar: '/images/avatar/abcd.jpg' },
+  { name: '@xxt8582753', role: '副社长 · 前端开发', avatar: '/images/avatar/xxt8582753.jpg' },
+  { name: '@云烟深处似闻稻香.☆', role: '宣传 · 美术设计', avatar: '/images/avatar/yunyanshenchusiwendaoxiang.jpg' },
+  { name: '@Imgreenhand', role: '开发者 · 视觉设计', avatar: '/images/avatar/imgreenhand.jpg' },
+  { name: '@🎆', role: '美术设计 · 算法竞赛', avatar: '/images/avatar/cxy.jpg' },
+]
