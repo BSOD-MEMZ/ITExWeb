@@ -1,1 +1,1 @@
-<template><footer><span>ITEx / NANFANG INFO EXPANSION CLUB</span><span>学生自发组织 · 非学校官方站点</span><span>© 2026 湖南省株洲市xxt软件 技术支持</span></footer></template>
+<template><footer><span>ITEx / NANFANG INFO EXTENSION CLUB</span><span>株洲市南方中学信息拓展社</span><span>© 2026 湖南省株洲市xxt软件 技术支持</span></footer></template>

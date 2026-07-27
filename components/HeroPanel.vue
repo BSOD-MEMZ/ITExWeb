@@ -11,7 +11,7 @@
       <div class="poster-bars"><i v-for="item in 5" :key="item" /></div>
       <img class="club-mascot" src="/images/shizuku-mizuhara.png" alt="南方中学信息技术拓展社独立社团 IP 形象：水原雫 Shizuku Mizuhara" />
       <p class="mascot-credit">水原雫（Shizuku Mizuhara）<br><span>由 2511 Imgreenhand 绘制</span></p>
-      <div class="poster-stamp">NANFANG<br>INFO<br>EXPANSION</div><div class="poster-orbit">ITEX · ITEX · ITEX · ITEX ·</div><div class="poster-mark">01</div>
+      <div class="poster-stamp">NANFANG<br>INFO<br>EXTENSION</div><div class="poster-orbit">ITEX · ITEX · ITEX · ITEX ·</div><div class="poster-mark">01</div>
     </aside>
   </section>
 </template>

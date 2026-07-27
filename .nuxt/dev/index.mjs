@@ -2055,7 +2055,7 @@ const _NiMB9ZsXA2STjeqhk7N2TgWtUdOm2R529gI6AoC3rdc = (function(nitro) {
 
 const rootDir = "D:/Dev/ITEx";
 
-const appHead = {"meta":[{"charset":"utf-8"},{"name":"viewport","content":"width=device-width, initial-scale=1"},{"name":"description","content":"株洲市南方中学信息拓展社——学生自主的技术、创作与协作空间。"}],"link":[],"style":[],"script":[],"noscript":[],"htmlAttrs":{"lang":"zh-CN"},"title":"ITEx / 南方中学信息拓展社"};
+const appHead = {"meta":[{"charset":"utf-8"},{"name":"viewport","content":"width=device-width, initial-scale=1"},{"name":"description","content":"株洲市南方中学信息拓展社——学生自主的技术、创作与协作空间。"}],"link":[],"style":[],"script":[],"noscript":[],"htmlAttrs":{"lang":"zh-CN"},"title":"ITEx / 株洲市南方中学信息拓展社"};
 
 const appRootTag = "div";
 

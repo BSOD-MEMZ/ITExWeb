@@ -1,5 +1,9 @@
 /* Five practice directions form a capability map rather than a course list. */
 .project-grid { grid-template-columns: repeat(5, 1fr); }
+.brand { display: inline-flex; align-items: center; gap: .55rem; }
+.brand-word { display: inline-block; }
+.brand-logo { display: grid; place-items: center; width: 42px; height: 42px; padding: 3px; background: var(--ink); box-shadow: 4px 4px 0 var(--red); }
+.brand-logo img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .club-mascot { position: absolute; z-index: 2; right: -12%; bottom: -2%; height: 94%; max-width: 120%; object-fit: contain; object-position: bottom center; filter: drop-shadow(5px 5px 0 var(--ink)); }
 .poster-stamp, .poster-mark, .poster-orbit { z-index: 3; }
 .mascot-credit { position: absolute; z-index: 4; left: 1rem; bottom: 1rem; margin: 0; padding: .45rem .55rem; background: var(--paper); color: var(--ink); border: 2px solid var(--ink); font-size: 12px; line-height: 1.35; }
@@ -29,6 +33,7 @@
   .project-grid { grid-template-columns: 1fr; }
   .project:nth-child(3) { border-right: 0; }
   .hero-join { font-size: 12px; gap: .75rem; padding: .6rem .7rem; }
+  .brand-logo { width: 34px; height: 34px; box-shadow: 3px 3px 0 var(--red); }
   .club-mascot { right: 3%; height: 105%; max-width: 86%; }
   .mascot-credit { left: .7rem; bottom: .7rem; font-size: 11px; }
 }
@@ -50,8 +55,36 @@
 .red-card ul { margin: 10px 0; padding-left: 18px; }
 .red-card li + li { margin-top: 9px; }
 
+.ip-culture { display: grid; grid-template-columns: 1.1fr .9fr; min-height: 620px; border-bottom: var(--line); background: var(--paper); }
+.ip-copy { padding: 70px 8vw; border-right: var(--line); }
+.ip-copy h2 { margin: 22px 0 28px; font: 400 clamp(52px, 7vw, 105px) /.84 Nano, sans-serif; letter-spacing: -.07em; }
+.ip-copy h2 span { color: var(--blue); }
+.ip-lead { max-width: 470px; font-size: 18px; line-height: 1.7; }
+.trait-list { max-width: 530px; margin-top: 34px; border-top: 2px solid var(--ink); }
+.trait-list div { display: grid; grid-template-columns: 150px 1fr; gap: 18px; padding: 13px 0; border-bottom: 2px solid var(--ink); }
+.trait-list b { font-size: 17px; }
+.trait-list span { font-size: 14px; line-height: 1.6; }
+.merch-display { position: relative; overflow: hidden; display: grid; grid-template-rows: auto 1fr auto; padding: 25px; background: var(--yellow); }
+.merch-display::before { content: 'ITEx'; position: absolute; z-index: 0; right: -4%; top: 17%; color: var(--red); font: 400 180px/.8 Nano, sans-serif; letter-spacing: -.1em; transform: rotate(-12deg); opacity: .9; }
+.merch-label { position: relative; z-index: 2; margin: 0; font: 400 11px monospace; letter-spacing: .1em; }
+.pin-stage { position: relative; z-index: 1; display: grid; place-items: center; min-height: 390px; perspective: 900px; }
+.pin-stage img { position: relative; z-index: 3; width: min(82%, 410px); aspect-ratio: 1; object-fit: contain; transform: rotate(-9deg) rotateX(8deg) rotateY(-12deg); filter: drop-shadow(20px 22px 0 rgba(22,22,22,.75)); transition: transform .25s ease; }
+.pin-stage:hover img { transform: rotate(-4deg) rotateX(0) rotateY(0) translateY(-7px); }
+.pin-rim { position: absolute; z-index: 2; width: min(81%, 405px); aspect-ratio: 1; border-radius: 50%; border: 10px solid var(--ink); background: var(--red); transform: translate(14px, 20px) rotate(-9deg) rotateX(8deg) rotateY(-12deg); }
+.pin-shadow { position: absolute; z-index: 1; width: 62%; height: 13%; bottom: 13%; border-radius: 50%; background: rgba(22,22,22,.55); filter: blur(8px); transform: rotate(-9deg); }
+.merch-note { position: relative; z-index: 4; display: flex; align-items: end; justify-content: space-between; gap: 18px; padding: 13px 0 0; border-top: 2px solid var(--ink); }
+.merch-note b { font: 400 26px/.9 Nano, sans-serif; }
+.merch-note span { max-width: 270px; font-size: 13px; line-height: 1.6; }
+
 @media (max-width: 760px) {
   .club-proof { grid-template-columns: 1fr; }
   .play-note { padding: 50px 20px; border-right: 0; border-bottom: var(--line); }
   .proof-card { padding: 28px 20px; min-height: auto; }
+  .ip-culture { grid-template-columns: 1fr; }
+  .ip-copy { padding: 50px 20px; border-right: 0; border-bottom: var(--line); }
+  .ip-copy h2 { font-size: 62px; }
+  .trait-list div { grid-template-columns: 1fr; gap: 5px; }
+  .merch-display { min-height: 540px; }
+  .pin-stage { min-height: 345px; }
+  .merch-note { align-items: start; flex-direction: column; gap: 8px; }
 }
