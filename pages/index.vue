@@ -1,5 +1,26 @@
 <script setup lang="ts">
-import { members, principles, projects } from '~/data/site'
+import { onMounted, onUnmounted } from 'vue'
+import { members, photoRows, principles, projects } from '~/data/site'
+
+let revealObserver: IntersectionObserver | undefined
+
+onMounted(() => {
+  document.documentElement.classList.add('motion-ready')
+  revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-visible')
+        revealObserver?.unobserve(entry.target)
+      }
+    })
+  }, { threshold: 0.14 })
+  document.querySelectorAll('[data-reveal]').forEach((element) => revealObserver?.observe(element))
+})
+
+onUnmounted(() => {
+  revealObserver?.disconnect()
+  document.documentElement.classList.remove('motion-ready')
+})
 </script>
 
 <template>
@@ -8,7 +29,7 @@ import { members, principles, projects } from '~/data/site'
     <SiteHeader />
     <main id="top">
       <HeroPanel />
-      <section id="about" class="manifesto">
+      <section id="about" class="manifesto" data-reveal>
         <p class="section-index">01 / ABOUT</p>
         <h2>让好奇心<br>有地方<span>落地。</span></h2>
         <div class="manifesto-text">
@@ -18,7 +39,7 @@ import { members, principles, projects } from '~/data/site'
         </div>
         <div class="statement">KEEP IT<br>CURIOUS.</div>
       </section>
-      <section class="club-proof">
+      <section class="club-proof" data-reveal>
         <div class="play-note">
           <p class="section-index">01.5 / PLAY, RESPONSIBLY</p>
           <h2>自由发挥，<br><span>立省￥50。</span></h2>
@@ -44,7 +65,7 @@ import { members, principles, projects } from '~/data/site'
           </article>
         </div>
       </section>
-      <section class="ip-culture">
+      <section class="ip-culture" data-reveal>
         <div class="ip-copy">
           <p class="section-index">01.6 / CLUB CULTURE</p>
           <h2>认识一下<br><span>水原雫。</span></h2>
@@ -62,11 +83,46 @@ import { members, principles, projects } from '~/data/site'
           <div class="merch-note"><b>新成员欢迎礼</b><span>我们已经做出了吧唧周边，会在部分活动中免费赠送给新社员。</span></div>
         </div>
       </section>
-      <section class="team-section">
-        <div class="team-heading"><p class="section-index">01.7 / PEOPLE</p><h2>一起把<br><span>想法做出来。</span></h2><p>社团由不同方向的同学共同维护。每个人都能带来新的视角。</p></div>
-        <div class="team-content"><div class="member-grid"><article v-for="member in members" :key="member.name" class="member-card"><img :src="member.avatar" :alt="`${member.name} 的头像`"><div><p>{{ member.role }}</p><h3>{{ member.name }}</h3><span v-if="member.className">{{ member.className }}</span></div></article></div><aside class="speaker-note"><p class="section-index">THE STAGE IS YOURS</p><h3>讲台属于<br>每一个人。</h3><p>只要你愿意，就可以上台分享：讲一节课、展示一次尝试，或把自己会的东西带给所有人。</p><a href="https://qm.qq.com/q/Ypgmr1rfyI" target="_blank" rel="noopener">来群里提议分享 ↗</a></aside></div>
+      <section class="team-section" data-reveal>
+        <div class="team-heading">
+          <p class="section-index">01.7 / PEOPLE</p>
+          <h2>一起把<br><span>想法做出来。</span></h2>
+          <p>社团由不同方向的同学共同维护。每个人都能带来新的视角。</p>
+        </div>
+        <div class="team-content">
+          <div class="member-grid">
+            <article v-for="member in members" :key="member.name" class="member-card"><img :src="member.avatar"
+                :alt="`${member.name} 的头像`">
+              <div>
+                <p>{{ member.role }}</p>
+                <h3>{{ member.name }}</h3><span v-if="member.className">{{ member.className }}</span>
+              </div>
+            </article>
+          </div>
+          <aside class="speaker-note">
+            <p class="section-index">THE STAGE IS YOURS</p>
+            <h3>讲台属于<br>每一个人。</h3>
+            <p>只要你愿意，就可以上台分享：讲一节课、展示一次尝试，或把自己会的东西带给所有人。</p><a href="https://qm.qq.com/q/Ypgmr1rfyI" target="_blank"
+              rel="noopener">来群里提议分享 ↗</a>
+          </aside>
+        </div>
       </section>
-      <section id="work" class="work">
+      <section class="photo-section" data-reveal>
+        <div class="photo-heading">
+          <p class="section-index">01.8 / IN THE MOMENT</p>
+          <h2>活动<br><span>现场。</span></h2>
+          <p>从教室到活动现场，所有实践都留下真实的瞬间。</p>
+        </div>
+        <div class="photo-wall">
+          <div v-for="(row, rowIndex) in photoRows" :key="rowIndex" class="photo-row"
+            :class="`photo-row--${rowIndex + 1}`">
+            <figure v-for="photo in row" :key="photo.order" class="photo-card" :style="{ '--ratio': photo.ratio }"><img
+                :src="photo.src" :alt="photo.alt">
+            </figure>
+          </div>
+        </div>
+      </section>
+      <section id="work" class="work" data-reveal>
         <div class="section-heading">
           <p class="section-index">02 / SKILL MAP</p>
           <h2>不止一道题<br><span>还有很多种路</span></h2>
@@ -76,7 +132,7 @@ import { members, principles, projects } from '~/data/site'
           <ProjectCard v-for="project in projects" :key="project.number" :project="project" />
         </div>
       </section>
-      <section class="rules">
+      <section class="rules" data-reveal>
         <p class="section-index">03 / GROUND RULES</p>
         <div class="rules-title">
           <h2>我们相信<br><span>这些事</span></h2>
@@ -84,15 +140,15 @@ import { members, principles, projects } from '~/data/site'
         </div>
         <ol>
           <li v-for="rule in principles" :key="rule[0]"><b>{{ rule[0] }}</b><span>{{ rule[1] }}</span><small>{{ rule[2]
-              }}</small></li>
+          }}</small></li>
         </ol>
       </section>
-      <section id="join" class="join">
+      <section id="join" class="join" data-reveal>
         <div class="join-label">04 / OPEN INVITATION</div>
         <div class="join-main">
           <h2>带着你的<br><em>问题</em>来。</h2>
-          <p>不需要履历，不限技能栈。<br>会不会都没关系；想做点东西，就来一起试试。</p><a class="big-button" href="https://qm.qq.com/q/Ypgmr1rfyI"
-            target="_blank" rel="noopener">加入 QQ 群 · 1076741511 <span>↗</span></a>
+          <p>不需要履历，不限技能栈。<br>会不会都没关系；想做点东西，就来一起试试。<br>入社不收取任何费用。</p><a class="big-button"
+            href="https://qm.qq.com/q/Ypgmr1rfyI" target="_blank" rel="noopener">加入 QQ 群 · 1076741511 <span>↗</span></a>
         </div>
         <div class="join-side"><span>南方中学</span><b>ITEx<br>CLUB</b><span>STUDENT RUN / NON-OFFICIAL</span></div>
       </section>
