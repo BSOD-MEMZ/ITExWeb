@@ -50,8 +50,8 @@
   .project:nth-child(3) { border-right: 0; }
   .hero-join { font-size: 12px; gap: .75rem; padding: .6rem .7rem; }
   .brand-logo { width: 34px; height: 34px; box-shadow: 3px 3px 0 var(--red); }
-  .club-mascot { right: 3%; height: 105%; max-width: 86%; }
-  .mascot-credit { left: .7rem; bottom: .7rem; font-size: 11px; }
+  .club-mascot { z-index: 5; right: 3%; height: 105%; max-width: 86%; }
+  .mascot-credit { z-index: 6; left: .7rem; bottom: .7rem; font-size: 11px; }
 }
 
 .club-proof { display: grid; grid-template-columns: 1.1fr 1fr; gap: 0; border-bottom: var(--line); }

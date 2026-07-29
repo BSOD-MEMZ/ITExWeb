@@ -33,7 +33,7 @@ onUnmounted(() => {
         <p class="section-index">01 / ABOUT</p>
         <h2>让好奇心<br>有地方<span>落地。</span></h2>
         <div class="manifesto-text">
-          <p>学校曾有信息奥赛社，但算法与竞赛并不是每个人想走的路。ITEx 不刷竞赛题，也不把兴趣压进同一条赛道。</p>
+          <p>学校曾有信息奥赛团队，但算法与竞赛并不是每个人想走的路。ITEx 不刷竞赛题，也不把兴趣压进同一条赛道。</p>
           <p>我们是一群在校园里折腾电脑、做小工具、研究网络与创意表达的人。有人会修设备，有人写代码，有人做视觉，也有人只是想弄懂“它为什么这样运作”。</p>
           <p>这里没有标准答案，只有一起把问题变成作品的同伴。</p>
         </div>
@@ -147,7 +147,7 @@ onUnmounted(() => {
         <div class="join-label">04 / OPEN INVITATION</div>
         <div class="join-main">
           <h2>带着你的<br><em>问题</em>来。</h2>
-          <p>不需要履历，不限技能栈。<br>会不会都没关系；想做点东西，就来一起试试。<br>入社不收取任何费用。</p><a class="big-button"
+          <p>不需要履历，不限技能栈。<br>会不会都没关系；想做点东西，就来一起试试。<br>入社不收取任何费用，具体活动时间和地点将在群内公布。</p><a class="big-button"
             href="https://qm.qq.com/q/Ypgmr1rfyI" target="_blank" rel="noopener">加入 QQ 群 · 1076741511 <span>↗</span></a>
         </div>
         <div class="join-side"><span>南方中学</span><b>ITEx<br>CLUB</b><span>STUDENT RUN / NON-OFFICIAL</span></div>
