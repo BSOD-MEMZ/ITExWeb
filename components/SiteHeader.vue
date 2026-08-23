@@ -1,6 +1,5 @@
 <template>
-  <div class="ticker" aria-label="社团标语"><span>MAKE / SHARE / BREAK / REBUILD /</span><span>MAKE / SHARE / BREAK /
-      REBUILD /</span></div>
+  <div class="ticker" aria-label="欢迎访问南中科创局，了解更多校园官方活动资讯"><a href="https://pat.weaxi.cn/" target="_blank" rel="noopener">欢迎访问<b>南中科创局</b>，了解更多校园官方活动资讯</a></div>
   <header class="site-header">
     <NuxtLink to="/" class="brand" aria-label="返回首页"><span class="brand-logo"><img src="/images/itex-logo.png"
           alt="ITEx 社团 Logo" /></span><span class="brand-word"><b>IT</b><span>Ex</span></span></NuxtLink>

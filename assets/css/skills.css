@@ -166,6 +166,14 @@
   .photo-card { border-width: 2px; box-shadow: 4px 4px 0 var(--ink); }
 }
 
+@media (max-width: 400px) {
+  .member-card { padding: 14px; min-height: 168px; }
+  .member-card img { width: 62px; height: 62px; }
+  .member-card h3 { font-size: 20px; }
+  .member-card p { font-size: 10px; }
+  .member-card span { font-size: 10px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
   .motion-ready [data-reveal] { opacity: 1; transform: none; }
