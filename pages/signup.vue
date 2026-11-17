@@ -174,7 +174,6 @@ function formatTime(iso: string) {
         <div class="apply-strip">
           <p class="section-index">05 / APPLICATION · 入社报名</p>
           <span class="apply-strip-right">
-            <span class="apply-strip-note">长期开放 · 不收费 · 信息只用于活动联络</span>
             <NuxtLink class="apply-back" to="/">← ITEx 首页</NuxtLink>
           </span>
         </div>
@@ -242,7 +241,7 @@ function formatTime(iso: string) {
               <li><b>04</b><span>联系方式</span></li>
             </ul>
             <p class="rail-note">
-              填完记得点提交。<br>信息只用于社团活动联络，不会公开。
+              提交后我们将会联系你。<br>这些不会公开。
             </p>
             <p class="rail-mark" aria-hidden="true">ITEX<br>FORM</p>
           </aside>
@@ -287,7 +286,7 @@ function formatTime(iso: string) {
                     <b>{{ level.name }}</b><span>{{ level.cn }}</span>
                   </button>
                 </div>
-                <p class="level-note">{{ currentLevel.note }}<span>选高了也没关系，报名表不考试。</span></p>
+                <p class="level-note">{{ currentLevel.note }}<span>只会 VibeCoding 也没关系，我们都差不多。</span></p>
               </div>
             </section>
 
