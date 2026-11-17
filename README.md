@@ -50,8 +50,11 @@ ITEx/
 ├─ assets/css/          # 全局视觉样式与响应式规则
 ├─ components/          # 首屏、导航、项目卡片、页尾等组件
 ├─ data/site.ts         # 社团方向与理念等内容数据
+├─ data/apply.ts        # 报名表的能力等级与活动类别
 ├─ pages/index.vue      # 官网首页
-├─ public/fonts/        # Nano 与 Lemi 字体文件
+├─ pages/signup.vue     # 入社报名表（独立页面，首页不放入口）
+├─ server/api/          # 报名表提交接口（node 部署时可用）
+├─ public/fonts/        # Cubic（正文）、Nano、Lemi 字体文件
 ├─ public/images/       # 水原雫等公开站点素材
 ├─ app.vue              # Nuxt 根组件
 └─ nuxt.config.ts       # Nuxt 配置
@@ -61,8 +64,23 @@ ITEx/
 
 - 调整社团实践方向：编辑 `data/site.ts` 中的 `projects`。
 - 调整首页文案、奖项和联动信息：编辑 `pages/index.vue`。
-- 调整布局与视觉：优先编辑 `assets/css/skills.css`；基础设计 token 位于 `assets/css/main.css`。
+- 调整报名表的能力等级、活动类别：编辑 `data/apply.ts`。
+- 调整布局与视觉：优先编辑 `assets/css/skills.css`；报名页样式在 `assets/css/signup.css`；基础设计 token 位于 `assets/css/main.css`。
 - 水原雫（Shizuku Mizuhara）立绘署名：由 2511 Imgreenhand 绘制。
+
+## 报名表
+
+地址：`/signup`（不放进首页导航，需要时直接分享链接；页面没有导航和页脚，只在顶部细条留了一个返回首页的链接）。
+
+「想参与的活动类别」里的 `自定义` 会多要求一句说明，提交时作为 `custom` 字段一起存下来。
+
+提交后的存储方式分两种，代码会自动选择：
+1. **node 部署 / `npm run dev`**：提交走 `server/api/signup.post.ts`，写入项目根目录的 `.data/signups.json`（已在 `.gitignore` 中忽略），返回编号形如 `ITEX-2026-0001`。
+2. **静态部署（`npm run generate`）**：静态托管没有接口，提交会退回浏览器 `localStorage`，编号形如 `ITEX-2026-LXXXX`，凭证上标记 `LOCAL`。想在这种情况下也真正收集报名，需要把站点部署到带服务端的运行环境，或换成第三方表单 / 数据库接口。
+
+页面按「展台模式」设计：同一台电脑摆在那里，同学们轮流上来填，所以**不做任何本机记录**（不存草稿、不提示"你已经提交过一份"），提交完点「再填一份」就清空表单交给下一个人。能力自评的四个等级各有自己的颜色（Basic 绿 / Advanced 黄 / Expert 红 / Master 紫），滑块与方块的四档位置分别在 25% / 50% / 75% / 100%。
+
+正文中文字体仍是 `font-source/` 里的 Lemi（乐米像素体）；`public/fonts/Cubic_11.woff2`（像素字体，未做子集化，约 400 KB）用在**所有等宽标签**里代替原来的新宋体（`monospace` 下中文会落到 NSimSun）——字体栈是 `Consolas, "Courier New", Cubic, Lemi, "Segoe UI Symbol", monospace`：拉丁用 Consolas，中文用 Cubic，Cubic 缺的字落 Lemi，`↗` 之类符号落 Segoe UI Symbol。
 
 ## 字体子集化
 

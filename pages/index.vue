@@ -58,7 +58,7 @@ onUnmounted(() => {
             <p class="card-label">MEMBER MILESTONES</p>
             <h3>把作品<br>做到更远</h3>
             <ul>
-              <li>2506 AbCd（副社长）<br>第 27 届中小学生数字素养提升实践活动省赛二等奖</li>
+              <li>2506 AbCd（副社长）<br>第 27 届中小学生数字素养提升实践活动省赛一等奖</li>
               <li>2505 xxt8582753（副社长）<br>第 27 届中小学生数字素养提升实践活动省赛一等奖，并进入国赛</li>
             </ul>
             <p>部分学生作品也在 <a href="https://smart.zznfzx.com" target="_blank" rel="noopener">南方中学电教委员专题网站</a> 展示。</p>

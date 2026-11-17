@@ -1,0 +1,244 @@
+/* 报名页：沿用首页的纸色底 + 3px 墨线 + 硬阴影视觉系统。 */
+
+.apply-main { min-height: 100vh; background: var(--paper); }
+.apply-body { padding: 34px 6vw 80px; background: var(--paper); }
+.apply-strip {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap;
+  margin-bottom: 18px; padding-bottom: 12px; border-bottom: 2px solid var(--ink);
+}
+.apply-strip .section-index { margin: 0; }
+.apply-strip-right { display: flex; align-items: center; gap: 18px; }
+.apply-strip-note { margin: 0; font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .04em; color: #6d655a; }
+.apply-back {
+  color: inherit; text-decoration: none; font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .04em;
+  border-bottom: 2px solid var(--ink); padding-bottom: 1px;
+}
+.apply-back:hover { color: var(--red); border-color: var(--red); }
+
+.apply-shell {
+  display: grid; grid-template-columns: 288px 1fr;
+  border: var(--line); background: var(--paper); box-shadow: 10px 10px 0 var(--ink);
+  scroll-margin-top: 96px;
+}
+
+.apply-rail {
+  display: flex; flex-direction: column; gap: 22px; padding: 26px 24px; border-right: var(--line);
+}
+.rail-title { margin: 0; font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .1em; }
+.rail-steps { margin: 0; padding: 0; list-style: none; border-top: 2px solid var(--ink); }
+.rail-steps li { display: flex; gap: 12px; align-items: baseline; padding: 11px 0; border-bottom: 2px solid var(--ink); font-size: 14px; }
+.rail-steps b { font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .06em; }
+.rail-note { margin: 0; font: 400 11px/1.8 Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; color: #6d655a; }
+.rail-mark {
+  margin: auto 0 0; font: 400 46px/.8 Nano, sans-serif; letter-spacing: -.08em;
+  color: var(--yellow); text-shadow: 3px 3px 0 var(--ink);
+}
+
+.apply-fields { min-width: 0; }
+.apply-block { padding: 26px 30px; border-bottom: var(--line); }
+.block-head { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 10px; margin-bottom: 20px; }
+.block-head b { font: 400 26px/1 Nano, sans-serif; }
+.block-head span { font-size: 18px; }
+.block-head em {
+  padding: 3px 6px; background: var(--ink); color: var(--paper);
+  font: 400 10px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; font-style: normal; letter-spacing: .12em;
+}
+
+.apply-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; }
+.apply-field { display: flex; flex-direction: column; gap: 7px; }
+.apply-field.is-wide { grid-column: 1 / -1; }
+.apply-label { display: flex; align-items: baseline; gap: 8px; font-size: 14px; }
+.apply-label i { font: 400 10px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; font-style: normal; letter-spacing: .1em; color: #6d655a; }
+
+.apply-field input,
+.apply-field textarea {
+  width: 100%; padding: 12px 14px; border: 3px solid var(--ink); background: #fffdf7; color: var(--ink);
+  font-family: inherit; font-size: 16px; line-height: 1.45; outline: none;
+  transition: box-shadow .15s ease, transform .15s ease, border-color .15s ease;
+}
+.apply-field input::placeholder,
+.apply-field textarea::placeholder { color: #a79e91; }
+.apply-field input:focus,
+.apply-field textarea:focus { box-shadow: 5px 5px 0 var(--blue); transform: translate(-2px, -2px); }
+.apply-field input.is-error,
+.apply-field textarea.is-error { border-color: var(--red); box-shadow: 5px 5px 0 var(--red); }
+.apply-field textarea { min-height: 108px; resize: vertical; }
+.apply-error { font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; color: var(--red); }
+.apply-counter { align-self: flex-end; font: 400 10px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; color: #6d655a; }
+
+.level-stage { --lv: var(--green); display: grid; gap: 14px; }
+.level-readout { display: flex; align-items: baseline; gap: 12px; margin: 0; }
+.level-readout b { font: 400 clamp(38px, 4.6vw, 58px)/.9 Nano, sans-serif; letter-spacing: -.05em; }
+.level-readout span { padding: 3px 7px; background: var(--lv); color: var(--ink); font-size: 12px; transition: background .18s ease; }
+.level-readout em { margin-left: auto; font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; font-style: normal; letter-spacing: .1em; color: #6d655a; }
+
+/* 轨道四等分：四个等级分别落在 25% / 50% / 75% / 100% 的边界上。
+   原生 range 只负责交互（透明），可视的条和滑块都用 div 画，才能和下面的方块对齐。 */
+.level-track { position: relative; height: 36px; }
+.level-track::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 9px; height: 18px;
+  border: 3px solid var(--ink); background: #fffdf7;
+}
+.level-track::after {
+  content: ''; position: absolute; left: 0; right: 0; top: 9px; height: 18px; pointer-events: none;
+  background:
+    linear-gradient(var(--ink), var(--ink)) 25% 0 / 2px 100% no-repeat,
+    linear-gradient(var(--ink), var(--ink)) 50% 0 / 2px 100% no-repeat,
+    linear-gradient(var(--ink), var(--ink)) 75% 0 / 2px 100% no-repeat;
+  opacity: .22;
+}
+.level-fill {
+  position: absolute; z-index: 2; left: 0; top: 9px; width: var(--fill, 25%); height: 18px;
+  background: var(--lv); border: 3px solid var(--ink); border-right: 0;
+  transition: width .18s cubic-bezier(.2,.8,.2,1), background .18s ease;
+}
+.level-knob {
+  position: absolute; z-index: 3; top: 18px; left: var(--fill, 25%);
+  width: 26px; height: 26px; margin: -13px 0 0 -13px;
+  background: var(--paper); border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--lv);
+  pointer-events: none;
+  transition: left .18s cubic-bezier(.2,.8,.2,1), box-shadow .18s ease;
+}
+.level-range {
+  position: absolute; z-index: 4; inset: 0; width: 100%; height: 36px; margin: 0;
+  opacity: 0; cursor: grab; -webkit-appearance: none; appearance: none;
+}
+.level-range:active { cursor: grabbing; }
+.level-track:focus-within { outline: 3px solid var(--ink); outline-offset: 5px; }
+
+/* 四块等宽拼接（负 margin 收掉双线），边界正好落在 25% / 50% / 75% / 100%，
+   与上面轨道里滑块的位置严格对齐。 */
+.level-ticks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
+.level-tick {
+  position: relative;
+  padding: 9px 11px; margin-left: -3px; border: 3px solid var(--ink); background: var(--paper); color: var(--ink);
+  font-family: inherit; text-align: left; cursor: pointer;
+  transition: background .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+.level-tick:first-child { margin-left: 0; }
+.level-tick b { display: block; font: 400 15px/1.2 Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .02em; }
+.level-tick span { font-size: 11px; }
+.level-tick:hover { background: var(--yellow); }
+/* 选中的方块：墨底纸字，投影换成该等级自己的颜色（Basic 绿 / Advanced 黄 / Expert 红 / Master 紫）。 */
+.level-tick.is-active { background: var(--ink); color: var(--paper); box-shadow: 5px 5px 0 var(--lv); z-index: 1; }
+.level-tick.is-active:hover { background: var(--ink); }
+.level-note { margin: 0; font-size: 14px; line-height: 1.7; }
+.level-note span { display: block; margin-top: 5px; font: 400 10px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .06em; color: #6d655a; }
+
+.dir-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.dir-grid.is-error { outline: 3px solid var(--red); outline-offset: 4px; }
+.dir-chip {
+  position: relative; display: flex; flex-direction: column; gap: 5px; padding: 14px 16px 13px;
+  border: 3px solid var(--ink); background: var(--paper); color: var(--ink);
+  font-family: inherit; text-align: left; cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.dir-chip::before {
+  content: ''; position: absolute; top: 12px; right: 12px; width: 12px; height: 12px;
+  border: 2px solid var(--ink); background: var(--tone, var(--paper));
+}
+.dir-chip i { font: 400 10px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; font-style: normal; letter-spacing: .12em; }
+.dir-chip b { font: 400 20px/1.05 Nano, sans-serif; letter-spacing: -.03em; }
+.dir-chip span { font-size: 12px; color: #4c463d; }
+.dir-chip:hover { transform: translate(-2px, -2px); box-shadow: 4px 4px 0 var(--ink); }
+.dir-chip.is-active { background: var(--ink); color: var(--paper); box-shadow: 5px 5px 0 var(--red); }
+.dir-chip.is-active span { color: #cfc8bb; }
+.dir-chip.is-active::before { border-color: var(--paper); }
+/* 奇数个选项时，最后一个占满整行，避免右侧空一格。 */
+.dir-chip:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.tone-red { --tone: var(--red); }
+.tone-blue { --tone: var(--blue); }
+.tone-yellow { --tone: var(--yellow); }
+.tone-ink { --tone: var(--ink); }
+.dir-custom {
+  margin-top: 12px; padding: 14px 16px 16px;
+  border: 3px dashed var(--ink); background: #fffdf7;
+}
+.dir-custom .apply-field { gap: 8px; }
+.dir-hint { margin: 12px 0 0; font: 400 11px/1.6 Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; color: #6d655a; }
+
+.apply-submit {
+  display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;
+  padding: 22px 30px; background: var(--yellow);
+}
+.apply-note { margin: 0; font: 400 11px/1.8 Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .04em; }
+.submit-button {
+  display: inline-flex; align-items: center; gap: 32px; padding: 15px 22px; border: 0;
+  background: var(--ink); color: var(--paper); font-family: inherit; font-size: 17px; cursor: pointer;
+  box-shadow: 6px 6px 0 var(--red); transition: transform .15s ease, box-shadow .15s ease;
+}
+.submit-button b { font-size: 22px; line-height: 1; }
+.submit-button:hover:not(:disabled) { transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--red); }
+.submit-button:disabled { opacity: .55; cursor: progress; }
+
+.apply-receipt { scroll-margin-top: 96px; }
+.receipt-card { border: var(--line); background: var(--paper); box-shadow: 10px 10px 0 var(--ink); }
+.receipt-top {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 18px;
+  padding: 24px 30px; border-bottom: var(--line); background: var(--yellow);
+}
+.receipt-label { margin: 0 0 8px; font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .12em; }
+.receipt-id { margin: 0; font: 400 clamp(26px, 4vw, 46px)/.95 Nano, sans-serif; letter-spacing: -.04em; }
+.receipt-stamp {
+  padding: 6px 10px; border: 3px solid var(--ink); background: var(--red);
+  font: 400 12px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .1em; transform: rotate(-4deg);
+}
+.receipt-list { margin: 0; }
+.receipt-row { display: grid; grid-template-columns: 160px 1fr; gap: 18px; padding: 14px 30px; border-bottom: 2px solid var(--ink); }
+.receipt-row:last-child { border-bottom: 0; }
+.receipt-row dt { padding-top: 4px; font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .08em; color: #4c463d; }
+.receipt-row dd { margin: 0; font-size: 16px; line-height: 1.6; }
+.receipt-level { font: 400 22px Nano, sans-serif; }
+.receipt-level-cn { margin-left: 8px; font-size: 12px; }
+.receipt-bar { display: inline-flex; gap: 4px; margin-left: 14px; vertical-align: middle; }
+.receipt-bar i { width: 26px; height: 10px; border: 2px solid var(--ink); }
+.receipt-bar i.is-on { background: var(--red); }
+.receipt-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.receipt-tags span { padding: 3px 8px; border: 2px solid var(--ink); font-size: 12px; }
+.receipt-code {
+  height: 46px; border-top: var(--line);
+  background: repeating-linear-gradient(90deg, var(--ink) 0 3px, transparent 3px 8px, var(--ink) 8px 10px, transparent 10px 17px);
+}
+.receipt-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  margin: 0; padding: 16px 30px; background: var(--ink); color: var(--paper); font: 400 11px/1.7 Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace;
+}
+.receipt-foot a { color: var(--yellow); }
+.receipt-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; padding: 18px 30px; background: var(--blue); }
+.receipt-tip { margin-left: auto; font: 400 11px/1.6 Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .04em; }
+.ghost-button {
+  padding: 10px 14px; border: 3px solid var(--ink); background: var(--paper); color: var(--ink);
+  font: 400 13px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; cursor: pointer;
+}
+.ghost-button:hover { background: var(--ink); color: var(--paper); }
+
+@media (max-width: 1100px) {
+  .apply-shell { grid-template-columns: 1fr; }
+  .apply-rail {
+    flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12px 28px;
+    border-right: 0; border-bottom: var(--line);
+  }
+  .rail-steps { display: flex; gap: 20px; border-top: 0; }
+  .rail-steps li { padding: 0; border-bottom: 0; }
+  .rail-note, .rail-mark { display: none; }
+}
+
+@media (max-width: 760px) {
+  .apply-rail { display: none; }
+  .apply-body { padding: 22px 14px 50px; }
+  .apply-strip-note { display: none; }
+  .dir-custom { padding: 12px; }
+  .apply-block { padding: 20px; }
+  .block-head { grid-template-columns: 30px 1fr; }
+  .block-head em { display: none; }
+  .apply-grid { grid-template-columns: 1fr; }
+  .level-ticks { grid-template-columns: repeat(2, 1fr); }
+  .dir-grid { grid-template-columns: 1fr; }
+  .apply-submit { padding: 18px 20px; }
+  .submit-button { width: 100%; justify-content: space-between; }
+  .receipt-top { flex-direction: column; padding: 20px; }
+  .receipt-row { grid-template-columns: 1fr; gap: 4px; padding: 12px 20px; }
+  .receipt-row dt { padding-top: 0; }
+  .receipt-foot { padding: 14px 20px; }
+  .receipt-actions { padding: 14px 20px; }
+}

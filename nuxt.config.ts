@@ -1,5 +1,5 @@
 export default defineNuxtConfig({
-  css: ['~/assets/css/main.css', '~/assets/css/skills.css'],
+  css: ['~/assets/css/main.css', '~/assets/css/skills.css', '~/assets/css/signup.css'],
   app: {
     head: {
       htmlAttrs: { lang: 'zh-CN' },

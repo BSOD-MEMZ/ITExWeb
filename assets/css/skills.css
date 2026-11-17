@@ -21,7 +21,7 @@
 .club-mascot { position: absolute; z-index: 2; right: -12%; bottom: -2%; height: 94%; max-width: 120%; object-fit: contain; object-position: bottom center; filter: drop-shadow(5px 5px 0 var(--ink)); }
 .poster-stamp, .poster-mark, .poster-orbit { z-index: 3; }
 .mascot-credit { position: absolute; z-index: 4; left: 1rem; bottom: 1rem; margin: 0; padding: .45rem .55rem; background: var(--paper); color: var(--ink); border: 2px solid var(--ink); font-size: 12px; line-height: 1.35; }
-.mascot-credit span { font-family: monospace; font-size: 10px; }
+.mascot-credit span { font-family: Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; font-size: 10px; }
 .desktop-mascot { display: none; }
 
 @media (min-width: 761px) {
@@ -30,7 +30,7 @@
   .desktop-mascot { display: block; position: absolute; z-index: 2; right: 1%; bottom: 0; height: 88%; width: 34%; }
   .desktop-mascot img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: bottom center; filter: drop-shadow(5px 5px 0 var(--ink)); }
   .desktop-mascot p { position: absolute; z-index: 3; top: 8%; right: 0; margin: 0; padding: .45rem .55rem; background: var(--paper); border: 2px solid var(--ink); color: var(--ink); font-size: 12px; line-height: 1.35; white-space: nowrap; }
-  .desktop-mascot span { font-family: monospace; font-size: 10px; }
+  .desktop-mascot span { font-family: Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; font-size: 10px; }
   .desktop-mascot img { animation: mascot-float 4.6s ease-in-out infinite; }
 }
 @keyframes mascot-float { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-10px) rotate(1deg); } }
@@ -64,10 +64,10 @@
 .proof-card h3 { margin: 14px 0; font: 400 clamp(32px, 3.8vw, 56px) /.9 Nano, sans-serif; letter-spacing: -.06em; }
 .proof-card p, .proof-card li { font-size: 14px; line-height: 1.7; }
 .proof-card a { color: inherit; font-weight: 400; }
-.proof-card > a { display: inline-block; margin-top: 8px; font-family: monospace; font-size: 12px; }
+.proof-card > a { display: inline-block; margin-top: 8px; font-family: Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; font-size: 12px; }
 .blue-card { background: var(--blue); border-bottom: var(--line); }
 .red-card { background: var(--red); }
-.card-label { margin: 0; font: 400 11px monospace !important; letter-spacing: .1em; }
+.card-label { margin: 0; font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace !important; letter-spacing: .1em; }
 .red-card ul { margin: 10px 0; padding-left: 18px; }
 .red-card li + li { margin-top: 9px; }
 
@@ -82,7 +82,7 @@
 .trait-list span { font-size: 14px; line-height: 1.6; }
 .merch-display { position: relative; overflow: hidden; display: grid; grid-template-rows: auto 1fr auto; padding: 25px; background: var(--yellow); }
 .merch-display::before { content: 'ITEx'; position: absolute; z-index: 0; right: -4%; top: 17%; color: var(--red); font: 400 180px/.8 Nano, sans-serif; letter-spacing: -.1em; transform: rotate(-12deg); opacity: .9; }
-.merch-label { position: relative; z-index: 2; margin: 0; font: 400 11px monospace; letter-spacing: .1em; }
+.merch-label { position: relative; z-index: 2; margin: 0; font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .1em; }
 .pin-stage { position: relative; z-index: 1; display: grid; place-items: center; min-height: 390px; perspective: 900px; }
 .pin-stage img { position: relative; z-index: 3; width: min(82%, 410px); aspect-ratio: 1; object-fit: contain; transform: rotate(-9deg) rotateX(8deg) rotateY(-12deg); filter: drop-shadow(20px 22px 0 rgba(22,22,22,.75)); transition: transform .25s ease; }
 .pin-stage:hover img { transform: rotate(-4deg) rotateX(0) rotateY(0) translateY(-7px); }
@@ -103,13 +103,13 @@
 .member-card:nth-child(3n) { border-right: 0; }
 .member-card:nth-last-child(-n + 3) { border-bottom: 0; }
 .member-card img { width: 78px; height: 78px; object-fit: cover; border: 3px solid var(--ink); box-shadow: 5px 5px 0 var(--red); }
-.member-card p { margin: 0 0 5px; font: 400 11px monospace; letter-spacing: .06em; }
+.member-card p { margin: 0 0 5px; font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .06em; }
 .member-card h3 { margin: 0; font: 400 24px/.95 Nano, sans-serif; letter-spacing: -.04em; overflow-wrap: anywhere; }
-.member-card span { display: inline-block; margin-top: 7px; padding: 2px 5px; background: var(--yellow); border: 2px solid var(--ink); font: 400 11px monospace; }
+.member-card span { display: inline-block; margin-top: 7px; padding: 2px 5px; background: var(--yellow); border: 2px solid var(--ink); font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; }
 .speaker-note { display: flex; flex-direction: column; justify-content: space-between; padding: 28px; background: var(--red); border-left: var(--line); }
 .speaker-note h3 { margin: 18px 0; font: 400 clamp(40px, 4.8vw, 70px) /.84 Nano, sans-serif; letter-spacing: -.07em; }
 .speaker-note > p:not(.section-index) { font-size: 15px; line-height: 1.75; }
-.speaker-note a { width: max-content; padding: 10px 12px; background: var(--ink); color: var(--paper); box-shadow: 4px 4px 0 var(--yellow); font: 400 12px monospace; text-decoration: none; }
+.speaker-note a { width: max-content; padding: 10px 12px; background: var(--ink); color: var(--paper); box-shadow: 4px 4px 0 var(--yellow); font: 400 12px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; text-decoration: none; }
 .photo-section { position: relative; overflow: hidden; padding: 70px 8vw; border-bottom: var(--line); background: var(--paper); }
 .photo-section::before { content: ''; position: absolute; z-index: 0; inset: 0; opacity: .22; background: linear-gradient(115deg, transparent 18%, var(--blue) 20%, transparent 23%, transparent 55%, var(--red) 57%, transparent 60%); background-size: 180% 180%; animation: light-scan 10s linear infinite; pointer-events: none; }
 .photo-heading, .photo-wall { position: relative; z-index: 1; }
@@ -124,7 +124,7 @@
 .photo-row--2 .photo-card { height: 220px; }
 .photo-card img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .65s cubic-bezier(.2,.8,.2,1), filter .45s ease; }
 .photo-card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 35%, rgb(255 255 255 / .56) 47%, transparent 59%); transform: translateX(-130%); transition: transform .65s ease; pointer-events: none; }
-.photo-card figcaption { position: absolute; z-index: 2; left: 0; bottom: 0; padding: 7px 9px; background: var(--paper); border-top: 2px solid var(--ink); border-right: 2px solid var(--ink); color: var(--ink); font: 400 11px monospace; letter-spacing: .04em; }
+.photo-card figcaption { position: absolute; z-index: 2; left: 0; bottom: 0; padding: 7px 9px; background: var(--paper); border-top: 2px solid var(--ink); border-right: 2px solid var(--ink); color: var(--ink); font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .04em; }
 .photo-card:hover { z-index: 3; transform: translate(-6px, -6px) rotate(-.6deg); box-shadow: 13px 13px 0 var(--red); }
 .photo-card:hover img { transform: scale(1.08); filter: saturate(1.18) contrast(1.06); }
 .photo-card:hover::after { transform: translateX(130%); }

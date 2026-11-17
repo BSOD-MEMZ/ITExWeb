@@ -19,6 +19,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Agent workspace (memory, temp probes)
+.workbuddy/
+
 # Editor and OS files
 .vscode/
 .idea/

@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE_EXTENSIONS = {".vue", ".ts", ".css", ".md"}
 EXTRA_GLYPHS = (
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-    " ·—–/\\()[]{}<>:;,.!?！？、，。：“”‘’（）《》【】#%&+*=—_￥®©↗→↓✱✚▶"
+    " ·—–/\\()[]{}<>:;,.!?！？、，。：“”‘’（）《》【】#%&+*=—_￥®©↗→↓←↑✱✚▶"
 )
 
 text = EXTRA_GLYPHS
