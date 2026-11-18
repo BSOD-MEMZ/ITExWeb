@@ -90,7 +90,13 @@ export default defineEventHandler(async (event) => {
     const records = await readAll()
     const year = new Date().getFullYear()
     const prefix = `ITEX-${year}-`
-    const sequence = records.filter((item) => item.id.startsWith(prefix)).length + 1
+    // 取已用编号的最大值 +1，而不是按条数 +1：删除记录后条数会倒退，
+    // 用条数会导致新编号与既有凭证撞号。
+    const sequence = records.reduce((max, item) => {
+      if (!item.id.startsWith(prefix)) return max
+      const n = Number.parseInt(item.id.slice(prefix.length), 10)
+      return Number.isInteger(n) && n > max ? n : max
+    }, 0) + 1
 
     const entry: SignupRecord = {
       id: `${prefix}${String(sequence).padStart(4, '0')}`,
