@@ -28,8 +28,8 @@ onUnmounted(() => {
     <div class="noise" aria-hidden="true" />
     <SiteHeader />
     <main id="top">
-      <HeroPanel />
-      <section id="about" class="manifesto" data-reveal>
+      <HeroPanel data-slide="封面" />
+      <section id="about" class="manifesto" data-reveal data-slide="我们是谁">
         <p class="section-index">01 / ABOUT</p>
         <h2>让好奇心<br>有地方<span>落地。</span></h2>
         <div class="manifesto-text">
@@ -39,7 +39,7 @@ onUnmounted(() => {
         </div>
         <div class="statement">KEEP IT<br>CURIOUS.</div>
       </section>
-      <section class="club-proof" data-reveal>
+      <section class="club-proof" data-reveal data-slide="自由发挥">
         <div class="play-note">
           <p class="section-index">01.5 / PLAY, RESPONSIBLY</p>
           <h2>自由发挥，<br><span>立省￥50。</span></h2>
@@ -65,7 +65,7 @@ onUnmounted(() => {
           </article>
         </div>
       </section>
-      <section class="ip-culture" data-reveal>
+      <section class="ip-culture" data-reveal data-slide="社团文化">
         <div class="ip-copy">
           <p class="section-index">01.6 / CLUB CULTURE</p>
           <h2>认识一下<br><span>水原雫。</span></h2>
@@ -83,7 +83,7 @@ onUnmounted(() => {
           <div class="merch-note"><b>新成员欢迎礼</b><span>我们已经做出了吧唧周边，会在部分活动中免费赠送给新社员。</span></div>
         </div>
       </section>
-      <section class="team-section" data-reveal>
+      <section class="team-section" data-reveal data-slide="成员们">
         <div class="team-heading">
           <p class="section-index">01.7 / PEOPLE</p>
           <h2>一起把<br><span>想法做出来。</span></h2>
@@ -107,7 +107,7 @@ onUnmounted(() => {
           </aside>
         </div>
       </section>
-      <section class="photo-section" data-reveal>
+      <section class="photo-section" data-reveal data-slide="活动现场">
         <div class="photo-heading">
           <p class="section-index">01.8 / IN THE MOMENT</p>
           <h2>活动<br><span>现场。</span></h2>
@@ -122,7 +122,7 @@ onUnmounted(() => {
           </div>
         </div>
       </section>
-      <section id="work" class="work" data-reveal>
+      <section id="work" class="work" data-reveal data-slide="技能地图">
         <div class="section-heading">
           <p class="section-index">02 / SKILL MAP</p>
           <h2>不止一道题<br><span>还有很多种路</span></h2>
@@ -132,7 +132,7 @@ onUnmounted(() => {
           <ProjectCard v-for="project in projects" :key="project.number" :project="project" />
         </div>
       </section>
-      <section class="rules" data-reveal>
+      <section class="rules" data-reveal data-slide="我们的信条">
         <p class="section-index">03 / GROUND RULES</p>
         <div class="rules-title">
           <h2>我们相信<br><span>这些事</span></h2>
@@ -143,7 +143,7 @@ onUnmounted(() => {
           }}</small></li>
         </ol>
       </section>
-      <section id="join" class="join" data-reveal>
+      <section id="join" class="join" data-reveal data-slide="加入我们">
         <div class="join-label">04 / OPEN INVITATION</div>
         <div class="join-main">
           <h2>带着你的<br><em>问题</em>来。</h2>
@@ -154,5 +154,6 @@ onUnmounted(() => {
       </section>
     </main>
     <SiteFooter />
+    <PresentationDeck />
   </div>
 </template>

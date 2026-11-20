@@ -1,0 +1,331 @@
+/* 自动播放（演示模式）：页脚入口 + 全屏轮播。 */
+
+/* ── 页脚入口 ──────────────────────────────────────────────
+   与「报名表」同一行、同一字号，刻意不抢眼，只在 hover / 聚焦时提亮。 */
+.footer-present {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  opacity: .5;
+  cursor: pointer;
+}
+
+.footer-present:hover,
+.footer-present:focus-visible {
+  opacity: 1;
+  border-bottom-color: currentColor;
+}
+
+/* ── 演示模式：页头页脚收起，正文只剩一页 ───────────────────── */
+html.is-presenting,
+html.is-presenting body {
+  overflow: hidden;
+}
+
+/* 舞台沿用页面本身的纸色：hero / manifesto / rules 这些区块本身是透明的，
+   靠 body 的底色才有纸感，所以这里不能把 body 改成深色。 */
+html.is-presenting .ticker,
+html.is-presenting .site-header,
+html.is-presenting footer {
+  display: none !important;
+}
+
+/* 每一页都是固定在舞台上的「幻灯片」，统一缩放到视口内。
+   用 visibility 而不是 display，避免破坏各区块原本的 grid / flex 布局。 */
+html.is-presenting main > section.deck-slide {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  width: 100vw;
+  margin: 0;
+  min-height: calc(100vh - var(--deck-hud, 62px));
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(var(--deck-x, 0px), var(--deck-y, 0px)) scale(var(--deck-scale, 1));
+  transform-origin: 0 0;
+  transition: opacity .2s linear;
+}
+
+html.is-presenting main > section.deck-slide.is-current {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  box-shadow: 0 0 0 3px var(--ink), 0 30px 80px rgb(22 22 22 / .38);
+}
+
+html.is-presenting main > section.deck-slide.is-leaving {
+  z-index: 4;
+  visibility: visible;
+  opacity: 1;
+}
+
+/* 进场／退场：方向一致地横向推开，像翻 PPT。 */
+html.is-presenting main > section.deck-slide.deck-in-next {
+  animation: deck-enter-next 640ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+html.is-presenting main > section.deck-slide.deck-in-prev {
+  animation: deck-enter-prev 640ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+html.is-presenting main > section.deck-slide.deck-out-next {
+  z-index: 4;
+  visibility: visible;
+  animation: deck-leave-next 520ms ease both;
+}
+
+html.is-presenting main > section.deck-slide.deck-out-prev {
+  z-index: 4;
+  visibility: visible;
+  animation: deck-leave-prev 520ms ease both;
+}
+
+@keyframes deck-enter-next {
+  from {
+    opacity: 0;
+    transform: translate(calc(var(--deck-x, 0px) + 7vw), var(--deck-y, 0px)) scale(var(--deck-scale, 1));
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(var(--deck-x, 0px), var(--deck-y, 0px)) scale(var(--deck-scale, 1));
+  }
+}
+
+@keyframes deck-enter-prev {
+  from {
+    opacity: 0;
+    transform: translate(calc(var(--deck-x, 0px) - 7vw), var(--deck-y, 0px)) scale(var(--deck-scale, 1));
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(var(--deck-x, 0px), var(--deck-y, 0px)) scale(var(--deck-scale, 1));
+  }
+}
+
+@keyframes deck-leave-next {
+  from {
+    opacity: 1;
+    transform: translate(var(--deck-x, 0px), var(--deck-y, 0px)) scale(var(--deck-scale, 1));
+  }
+
+  to {
+    opacity: 0;
+    transform: translate(calc(var(--deck-x, 0px) - 6vw), var(--deck-y, 0px)) scale(calc(var(--deck-scale, 1) * .96));
+  }
+}
+
+@keyframes deck-leave-prev {
+  from {
+    opacity: 1;
+    transform: translate(var(--deck-x, 0px), var(--deck-y, 0px)) scale(var(--deck-scale, 1));
+  }
+
+  to {
+    opacity: 0;
+    transform: translate(calc(var(--deck-x, 0px) + 6vw), var(--deck-y, 0px)) scale(calc(var(--deck-scale, 1) * .96));
+  }
+}
+
+/* ── 底部控制条 ──────────────────────────────────────────── */
+.deck {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+}
+
+.deck-hud {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 62px;
+  padding: 0 22px;
+  border-top: 3px solid var(--yellow);
+  background: var(--ink);
+  color: var(--paper);
+  font: 400 12px/1 Consolas, "Courier New", Cubic, Lemi, "Segoe UI Symbol", monospace;
+  pointer-events: auto;
+}
+
+.deck-hud:focus-visible {
+  outline: 3px solid var(--yellow);
+  outline-offset: -3px;
+}
+
+/* 15 秒进度条：宽度由组件里的 requestAnimationFrame 推进。 */
+.deck-progress {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 4px;
+  background: rgb(244 240 232 / .16);
+  overflow: hidden;
+}
+
+.deck-progress i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--yellow);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+}
+
+.deck-status {
+  display: flex;
+  flex-shrink: 1;
+  align-items: baseline;
+  gap: 14px;
+  min-width: 0;
+}
+
+.deck-live {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  color: var(--yellow);
+  font-size: 11px;
+  letter-spacing: .14em;
+  white-space: nowrap;
+}
+
+.deck-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  animation: deck-blink 1.6s steps(1, end) infinite;
+}
+
+.deck.is-paused .deck-dot {
+  animation-play-state: paused;
+  opacity: .35;
+}
+
+@keyframes deck-blink {
+  50% {
+    opacity: .15;
+  }
+}
+
+.deck-counter {
+  color: var(--paper);
+  font-size: 15px;
+  letter-spacing: .1em;
+  white-space: nowrap;
+}
+
+.deck-title {
+  overflow: hidden;
+  color: var(--paper);
+  font-family: Lemi, "Microsoft YaHei", sans-serif;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-hint {
+  margin: 0 0 0 auto;
+  color: rgb(244 240 232 / .5);
+  font-size: 11px;
+  letter-spacing: .06em;
+  white-space: nowrap;
+}
+
+.deck-controls {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.deck-btn {
+  appearance: none;
+  padding: 9px 12px;
+  border: 2px solid rgb(244 240 232 / .35);
+  background: transparent;
+  color: var(--paper);
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: .04em;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+
+.deck-btn:hover,
+.deck-btn:focus-visible {
+  border-color: var(--paper);
+  background: var(--paper);
+  color: var(--ink);
+  outline: none;
+}
+
+.deck-btn--toggle[aria-pressed="true"] {
+  border-color: var(--yellow);
+  background: var(--yellow);
+  color: var(--ink);
+}
+
+.deck-btn--exit {
+  border-color: rgb(255 74 40 / .7);
+  color: var(--red);
+}
+
+.deck-btn--exit:hover,
+.deck-btn--exit:focus-visible {
+  border-color: var(--red);
+  background: var(--red);
+  color: var(--paper);
+}
+
+@media (max-width: 1200px) {
+  .deck-hint {
+    display: none;
+  }
+
+  .deck-controls {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 900px) {
+  .deck-live {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .deck-hud {
+    gap: 10px;
+    height: 56px;
+    padding: 0 12px;
+  }
+
+  .deck-btn {
+    padding: 8px 9px;
+    font-size: 11px;
+  }
+
+  .deck-title {
+    font-size: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.is-presenting main > section.deck-slide {
+    animation: none !important;
+  }
+}
