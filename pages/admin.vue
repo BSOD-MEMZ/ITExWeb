@@ -24,7 +24,7 @@ type Draft = { adminNote: string; contact: string; note: string }
 type ApiError = {
   statusCode?: number
   message?: string
-  data?: { statusCode?: number; statusMessage?: string; message?: string }
+  data?: { statusCode?: number; statusMessage?: string; message?: string; data?: { message?: string } }
 }
 
 const PAGE_SIZE = 20
@@ -80,7 +80,8 @@ function errorStatus(error: unknown) {
 
 function errorMessage(error: unknown) {
   const err = error as ApiError
-  return err?.data?.statusMessage || err?.data?.message || err?.message || '请求失败，请稍后再试'
+  // 业务文案优先，其次是 h3 的默认 message；statusMessage 只作为旧版本的兜底。
+  return err?.data?.data?.message || err?.data?.message || err?.data?.statusMessage || err?.message || '请求失败，请稍后再试'
 }
 
 function say(text: string, tone: 'ok' | 'err' = 'ok') {

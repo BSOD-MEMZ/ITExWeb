@@ -1,4 +1,3 @@
-import { createError } from 'h3'
 import type { SignupPatch } from '../../../utils/signupStore'
 
 /**
@@ -9,7 +8,7 @@ export default defineEventHandler(async (event) => {
   requireAdmin(event)
 
   const id = getRouterParam(event, 'id')
-  if (!id) throw createError({ statusCode: 400, statusMessage: '缺少报名编号' })
+  if (!id) throw apiError(400, '缺少报名编号')
 
   const body = (await readBody<SignupPatch>(event).catch(() => ({}))) as SignupPatch
   const record = await updateSignup(decodeURIComponent(id), body)

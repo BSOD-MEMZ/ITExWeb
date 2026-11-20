@@ -121,8 +121,14 @@ async function submit() {
 
     // 表单内容被服务端拒绝（4xx）：把提示放回对应字段，不能假装提交成功。
     if (status >= 400 && status < 500) {
-      const data = (error as { data?: { statusMessage?: string; message?: string; data?: { field?: keyof typeof errors } } })?.data
-      const message = data?.statusMessage || data?.message || '提交失败，请检查填写内容'
+      const data = (error as {
+        data?: {
+          statusMessage?: string
+          message?: string
+          data?: { field?: keyof typeof errors; message?: string }
+        }
+      })?.data
+      const message = data?.data?.message || data?.message || data?.statusMessage || '提交失败，请检查填写内容'
       const field = data?.data?.field
       if (field && field in errors) errors[field] = message
       else submitError.value = message

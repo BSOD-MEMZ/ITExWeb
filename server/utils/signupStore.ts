@@ -1,6 +1,5 @@
 import { promises as fs } from 'node:fs'
 import { join } from 'node:path'
-import { createError } from 'h3'
 import { directions, levels } from '../../data/apply'
 import {
   SIGNUP_DIRECTION_IDS,
@@ -108,7 +107,7 @@ export function normalizeSignupInput(body: unknown, base?: SignupRecord): Signup
   const pickedDirections = has('directions') ? pickDirections(source.directions) : fallback?.directions ?? []
 
   const fail = (field: keyof SignupInput, message: string): never => {
-    throw createError({ statusCode: 400, statusMessage: message, data: { field } })
+    throw apiError(400, message, { field })
   }
 
   if (!name) fail('name', '请填写姓名')
@@ -376,7 +375,7 @@ export async function updateSignup(id: string, patch: SignupPatch): Promise<Sign
   return withLock(async () => {
     const records = await readStore()
     const index = records.findIndex((record) => record.id === id)
-    if (index < 0) throw createError({ statusCode: 404, statusMessage: '找不到这条报名记录' })
+    if (index < 0) throw apiError(404, '找不到这条报名记录')
 
     const current = records[index]
     const has = (key: string) => Object.prototype.hasOwnProperty.call(patch, key) && (patch as Record<string, unknown>)[key] !== undefined
@@ -388,7 +387,7 @@ export async function updateSignup(id: string, patch: SignupPatch): Promise<Sign
 
     const input = normalizeSignupInput(source, current)
     const status = has('status') ? patch.status : current.status
-    if (!isSignupStatus(status)) throw createError({ statusCode: 400, statusMessage: '未知的报名状态' })
+    if (!isSignupStatus(status)) throw apiError(400, '未知的报名状态')
 
     const next: SignupRecord = {
       ...current,
@@ -408,7 +407,7 @@ export async function deleteSignup(id: string): Promise<void> {
   return withLock(async () => {
     const records = await readStore()
     const next = records.filter((record) => record.id !== id)
-    if (next.length === records.length) throw createError({ statusCode: 404, statusMessage: '找不到这条报名记录' })
+    if (next.length === records.length) throw apiError(404, '找不到这条报名记录')
     await writeStore(next)
   })
 }

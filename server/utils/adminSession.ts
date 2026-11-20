@@ -1,5 +1,5 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
-import { createError, deleteCookie, getCookie, getRequestIP, getRequestProtocol, setCookie, type H3Event } from 'h3'
+import { deleteCookie, getCookie, getRequestIP, getRequestProtocol, setCookie, type H3Event } from 'h3'
 
 /**
  * 管理后台的会话。
@@ -86,10 +86,10 @@ export function hasAdminSession(event: H3Event) {
 /** 所有 /api/admin/* 的第一行：未启用、未登录都在这里挡掉。 */
 export function requireAdmin(event: H3Event) {
   if (!isAdminEnabled(event)) {
-    throw createError({ statusCode: 503, statusMessage: '管理后台未启用：请在服务端配置 NUXT_ADMIN_PASSWORD' })
+    throw apiError(503, '管理后台未启用：请在服务端配置 NUXT_ADMIN_PASSWORD')
   }
   if (!hasAdminSession(event)) {
-    throw createError({ statusCode: 401, statusMessage: '登录已失效，请重新登录' })
+    throw apiError(401, '登录已失效，请重新登录')
   }
 }
 
@@ -120,11 +120,7 @@ export function assertLoginAllowed(event: H3Event) {
   // 从最后一次失败算起，冷却期内直接拒绝，避免无成本地连续猜密码。
   const retryAfter = Math.ceil((list[list.length - 1] + LOCK_MS - now) / 1000)
   if (retryAfter > 0) {
-    throw createError({
-      statusCode: 429,
-      statusMessage: `密码错误次数过多，请 ${retryAfter} 秒后再试`,
-      data: { retryAfter }
-    })
+    throw apiError(429, `密码错误次数过多，请 ${retryAfter} 秒后再试`, { retryAfter })
   }
 }
 
