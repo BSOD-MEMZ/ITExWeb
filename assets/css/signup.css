@@ -162,6 +162,11 @@
   padding: 22px 30px; background: var(--yellow);
 }
 .apply-note { margin: 0; font: 400 11px/1.8 Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .04em; }
+.apply-submit-copy { display: grid; gap: 8px; }
+.apply-submit-error {
+  margin: 0; padding: 8px 12px; border: 3px solid var(--ink); background: var(--red); color: var(--ink);
+  font: 400 12px/1.6 Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .02em;
+}
 .submit-button {
   display: inline-flex; align-items: center; gap: 32px; padding: 15px 22px; border: 0;
   background: var(--ink); color: var(--paper); font-family: inherit; font-size: 17px; cursor: pointer;

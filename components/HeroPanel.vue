@@ -5,7 +5,7 @@
       <p class="eyebrow">株洲市南方中学 · 学生自主技术社群</p>
       <h1>信息<br><em>拓展</em>社</h1>
       <div class="desktop-mascot" aria-hidden="true"><img src="/images/shizuku-mizuhara.png" alt="">
-        <p>水原雫（Shizuku Mizuhara）<br><span>由 2511 Imgreenhand 绘制</span></p>
+        <p>水原雫（Shizuku Mizuhara）<br><span>由 2511 ScreenRain 绘制</span></p>
       </div>
       <div class="hero-foot">
         <div>
@@ -17,7 +17,7 @@
     <aside class="hero-poster" aria-label="社团视觉标识">
       <div class="poster-bars"><i v-for="item in 5" :key="item" /></div>
       <img class="club-mascot" src="/images/shizuku-mizuhara.png" alt="南方中学信息技术拓展社独立社团 IP 形象：水原雫 Shizuku Mizuhara" />
-      <p class="mascot-credit">水原雫（Shizuku Mizuhara）<br><span>由 2511 Imgreenhand 绘制</span></p>
+      <p class="mascot-credit">水原雫（Shizuku Mizuhara）<br><span>由 2511 ScreenRain 绘制</span></p>
       <div class="poster-stamp">NANFANG<br>INFO<br>EXTENSION</div>
       <div class="poster-orbit">ITEX · ITEX · ITEX · ITEX ·</div>
       <div class="poster-mark">01</div>

@@ -25,7 +25,12 @@ npm install
 npm run dev
 ```
 
-开发服务默认运行于 `http://localhost:3000`。
+开发服务默认运行于 `http://localhost:3000`。想用报名管理后台的话，先复制一份环境变量文件并设置后台密码（见 [报名管理后台](#报名管理后台)）：
+
+```bash
+cp .env.example .env
+# 编辑 .env，把 NUXT_ADMIN_PASSWORD 填成一个足够长的密码
+```
 
 ### 常用命令
 
@@ -47,40 +52,105 @@ npm run preview
 
 ```text
 ITEx/
-├─ assets/css/          # 全局视觉样式与响应式规则
+├─ assets/css/          # 全局视觉样式与响应式规则（admin.css 是报名后台）
 ├─ components/          # 首屏、导航、项目卡片、页尾等组件
 ├─ data/site.ts         # 社团方向与理念等内容数据
 ├─ data/apply.ts        # 报名表的能力等级与活动类别
+├─ types/signup.ts      # 报名数据结构与状态枚举（页面、接口、后台共用）
 ├─ pages/index.vue      # 官网首页
-├─ pages/signup.vue     # 入社报名表（独立页面，首页不放入口）
-├─ server/api/          # 报名表提交接口（node 部署时可用）
+├─ pages/signup.vue     # 入社报名表（独立页面，首页只在页脚留入口）
+├─ pages/admin.vue      # 报名名单管理后台（不加入口，只能直接访问 /admin）
+├─ server/api/          # 报名提交接口与 /api/admin/* 管理接口
+├─ server/utils/        # signupStore（报名持久化）、adminSession（后台会话）
+├─ utils/signupOffline.ts # 提交失败时的本机待补交队列
 ├─ public/fonts/        # Cubic（正文）、Nano、Lemi 字体文件
 ├─ public/images/       # 水原雫等公开站点素材
 ├─ app.vue              # Nuxt 根组件
-└─ nuxt.config.ts       # Nuxt 配置
+└─ nuxt.config.ts       # Nuxt 配置（含后台密码、/admin 的 noindex 规则）
 ```
 
 ## 内容维护
 
 - 调整社团实践方向：编辑 `data/site.ts` 中的 `projects`。
 - 调整首页文案、奖项和联动信息：编辑 `pages/index.vue`。
-- 调整报名表的能力等级、活动类别：编辑 `data/apply.ts`。
+- 调整报名表的能力等级、活动类别：编辑 `data/apply.ts`（方向 id 同时被 `types/signup.ts` 的白名单校验使用）。
+- 调整报名后台的列表与统计：编辑 `pages/admin.vue` 与 `assets/css/admin.css`。
 - 调整布局与视觉：优先编辑 `assets/css/skills.css`；报名页样式在 `assets/css/signup.css`；基础设计 token 位于 `assets/css/main.css`。
-- 水原雫（Shizuku Mizuhara）立绘署名：由 2511 Imgreenhand 绘制。
+- 水原雫（Shizuku Mizuhara）立绘署名：由 2511 ScreenRain 绘制。
 
 ## 报名表
 
-地址：`/signup`（不放进首页导航，需要时直接分享链接；页面没有导航和页脚，只在顶部细条留了一个返回首页的链接）。
+地址：`/signup`。首页导航里刻意不放，只在首页页脚最右侧的版权行里留了一个不显眼的「报名表」链接；需要时也可以直接分享这个地址。报名页自身没有导航和页脚，只在顶部细条留了返回首页的链接。
 
 「想参与的活动类别」里的 `自定义` 会多要求一句说明，提交时作为 `custom` 字段一起存下来。
 
-提交后的存储方式分两种，代码会自动选择：
-1. **node 部署 / `npm run dev`**：提交走 `server/api/signup.post.ts`，写入项目根目录的 `.data/signups.json`（已在 `.gitignore` 中忽略），返回编号形如 `ITEX-2026-0001`。
-2. **静态部署（`npm run generate`）**：静态托管没有接口，提交会退回浏览器 `localStorage`，编号形如 `ITEX-2026-LXXXX`，凭证上标记 `LOCAL`。想在这种情况下也真正收集报名，需要把站点部署到带服务端的运行环境，或换成第三方表单 / 数据库接口。
+### 数据存在哪里
 
-页面按「展台模式」设计：同一台电脑摆在那里，同学们轮流上来填，所以**不做任何本机记录**（不存草稿、不提示"你已经提交过一份"），提交完点「再填一份」就清空表单交给下一个人。能力自评的四个等级各有自己的颜色（Basic 绿 / Advanced 黄 / Expert 红 / Master 紫），滑块与方块的四档位置分别在 25% / 50% / 75% / 100%。
+`server/utils/signupStore.ts` 是唯一的读写入口，数据落在项目根目录的 `.data/signups.json`（已在 `.gitignore` 中忽略，可用环境变量 `ITEX_DATA_DIR` 换目录）：
+
+```json
+{ "version": 2, "updatedAt": "2026-11-20T06:00:00.000Z", "records": [ /* ... */ ] }
+```
+
+- 写入是「临时文件 + rename」的原子替换，所有「读 → 改 → 写」都串行排队，并发提交不会互相覆盖；文件损坏时先备份成 `signups.corrupt-*.json` 再重建，不会静默清空。
+- 每条记录包含表单字段、编号（`ITEX-2026-0001`，取已用最大值 +1，不会因为删记录而撞号）、`status`（`pending` / `contacted` / `accepted` / `archived`）、`adminNote`（仅后台可见）、`createdAt`、`updatedAt`。
+- 旧版纯数组格式在读取时自动补默认字段，下次写入升级成 v2，不需要手动迁移。
+- 只支持单进程部署；如果以后上 PM2 cluster 或多实例，需要把这一层换成数据库或加文件锁。
+
+### 提交失败时
+
+- 服务端返回 4xx（比如漏填姓名）：报名页把提示放回对应字段并高亮，不会假装成功。
+- 断网或服务端 5xx：这份报名先写进浏览器 `localStorage` 的 `itex:signup:pending` 队列，凭证标记 `LOCAL`；下次打开报名页时自动补交，补交成功才从队列里删掉，失败则继续留着。
+- 静态部署（`npm run generate`）没有接口，所有提交都会走本机队列，页面顶部细条会提示「本机有 N 份待补交」。想真正收集报名，请部署到带 Node 的环境。
+
+页面按「展台模式」设计：同一台电脑摆在那里，同学们轮流上来填，所以**不做任何本机草稿**（不提示"你已经提交过一份"），提交完点「再填一份」就清空表单交给下一个人。能力自评的四个等级各有自己的颜色（Basic 绿 / Advanced 黄 / Expert 红 / Master 紫），滑块与方块的四档位置分别在 25% / 50% / 75% / 100%。
 
 正文中文字体仍是 `font-source/` 里的 Lemi（乐米像素体）；`public/fonts/Cubic_11.woff2`（像素字体，未做子集化，约 400 KB）用在**所有等宽标签**里代替原来的新宋体（`monospace` 下中文会落到 NSimSun）——字体栈是 `Consolas, "Courier New", Cubic, Lemi, "Segoe UI Symbol", monospace`：拉丁用 Consolas，中文用 Cubic，Cubic 缺的字落 Lemi，`↗` 之类符号落 Segoe UI Symbol。
+
+## 报名管理后台
+
+地址：`/admin`。不加入口、不预渲染、带 `X-Robots-Tag: noindex`，只能靠知道地址访问。
+
+### 启用方式
+
+后台密码只从服务端环境变量读，没配置就整体停用（登录接口返回 503，不会出现默认密码）：
+
+```bash
+# 开发：复制 .env.example 为 .env 并填写
+NUXT_ADMIN_PASSWORD=换成一个足够长的密码
+
+# 生产：运行时环境变量，改密码不需要重新 build
+NUXT_ADMIN_PASSWORD=... NUXT_ADMIN_SESSION_SECRET=... node .output/server/index.mjs
+```
+
+| 变量 | 必填 | 说明 |
+| --- | --- | --- |
+| `NUXT_ADMIN_PASSWORD` | 是 | 后台登录密码。留空 = 后台停用。 |
+| `NUXT_ADMIN_SESSION_SECRET` | 否 | 会话签名密钥；不填则从密码派生，改密码会让所有已登录会话立即失效。 |
+| `ITEX_DATA_DIR` | 否 | 报名数据目录，默认 `./.data`。 |
+
+登录成功后下发 `httpOnly` + `SameSite=Lax` 的签名 cookie，有效期 8 小时，服务端不用存 session；登录失败按 IP 限流（10 分钟内最多错 10 次，之后每次再错冷却 60 秒）。**静态托管（`npm run generate`）跑不了后台**，需要 Node 环境（`npm run build` + `node .output/server/index.mjs`，或支持 Node 的托管平台）。
+
+### 能做什么
+
+- 名单分页，关键字搜索（姓名 / 班级 / 联系方式 / 编号 / 备注），按状态、方向、能力筛选，四种排序。
+- 顶部统计：全部、待处理、已联系、已入社、近 7 天（统计基于全部记录，不受筛选影响）。
+- 点开任意一行看详情：改状态、改联系方式与其它信息、写内部备注（仅后台可见，深色标签 `ADMIN ONLY`）。
+- 导出 CSV（带 BOM，Excel 直接打开中文不乱码；导出的是当前筛选结果，含状态与内部备注，`= + - @` 开头的内容会被转义防公式注入）。
+- 删除报名：需要点两次确认，不可恢复，建议定期导出备份。
+
+### 接口
+
+| 方法与路径 | 说明 |
+| --- | --- |
+| `POST /api/signup` | 报名提交（公开） |
+| `GET /api/admin/session` | 后台是否启用 / 当前是否已登录 |
+| `POST /api/admin/login` | 登录，body `{ password }` |
+| `POST /api/admin/logout` | 退出登录（清 cookie） |
+| `GET /api/admin/signups` | 名单，支持 `q` / `status` / `direction` / `level` / `sort` / `page` / `pageSize` |
+| `PATCH /api/admin/signups/:id` | 改状态、内部备注或表单字段 |
+| `DELETE /api/admin/signups/:id` | 删除一条报名 |
+| `GET /api/admin/signups/export` | 导出 CSV（接受同样的筛选参数） |
 
 ## 字体子集化
 

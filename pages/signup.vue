@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed, nextTick, onUnmounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { directions, levels } from '~/data/apply'
+import type { SignupDirectionId, SignupInput } from '~/types/signup'
+import { flushPendingSignups, queuePendingSignup, readPendingSignups } from '~/utils/signupOffline'
 
 useHead({
   title: '报名表 · ITEx / 株洲市南方中学信息拓展社',
@@ -9,25 +11,25 @@ useHead({
   ]
 })
 
-type Signup = {
-  name: string
-  className: string
-  level: number
-  directions: string[]
-  custom: string
-  contact: string
-  note: string
-}
-
+// 表单字段与服务端共用一份定义，方向 id 不再是裸 string。
+type Signup = SignupInput
 type SignupRecord = Signup & { id: string; createdAt: string; offline?: boolean }
 
-// 展台场景：同一台电脑轮流填写，所以不做任何本机记录，也不提示“你已经提交过”。
+async function postSignup(payload: SignupInput) {
+  return await $fetch<{ id: string; createdAt: string }>('/api/signup', { method: 'POST', body: payload, timeout: 8000 })
+}
+
+// 展台场景：同一台电脑轮流填写，所以不存本机草稿、也不提示“你已经提交过”。
+// 只有提交失败（断网 / 5xx）时，才会把这一份放进 utils/signupOffline.ts 的待补交队列。
 const LEVEL_COLORS = ['var(--green)', 'var(--yellow)', 'var(--red)', 'var(--purple)']
 
 const form = reactive<Signup>({ name: '', className: '', level: 0, directions: [], custom: '', contact: '', note: '' })
 const errors = reactive({ name: '', className: '', directions: '', custom: '', contact: '' })
 const submitting = ref(false)
+const submitError = ref('')
 const receipt = ref<SignupRecord | null>(null)
+// 本机还有几份「当时没送出去」的报名。展台机器临时断网时会短暂 > 0。
+const pendingCount = ref(0)
 // 展台：凭证停在屏幕上的时间不宜太久，到点自动清空交给下一位。
 const RESET_SECONDS = 90
 const resetIn = ref(0)
@@ -79,7 +81,7 @@ function applyRecord(record: Partial<Signup>) {
   if (typeof record.note === 'string') form.note = record.note
 }
 
-function toggleDirection(id: string) {
+function toggleDirection(id: SignupDirectionId) {
   const index = form.directions.indexOf(id)
   if (index >= 0) form.directions.splice(index, 1)
   else form.directions.push(id)
@@ -96,14 +98,9 @@ function validate() {
   return !errors.name && !errors.className && !errors.contact && !errors.directions && !errors.custom
 }
 
-function localId() {
-  const year = new Date().getFullYear()
-  const tail = Date.now().toString(36).slice(-4).toUpperCase()
-  return `ITEX-${year}-L${tail}`
-}
-
 async function submit() {
   if (submitting.value) return
+  submitError.value = ''
   if (!validate()) {
     document.querySelector('.apply-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     return
@@ -114,15 +111,31 @@ async function submit() {
 
   let record: SignupRecord
   try {
-    const result = await $fetch<{ id: string; createdAt: string }>('/api/signup', {
-      method: 'POST',
-      body: payload,
-      timeout: 8000
-    })
+    const result = await postSignup(payload)
     record = { ...payload, id: result.id, createdAt: result.createdAt }
-  } catch {
-    // 静态托管没有服务端接口时退回本机保存，保证信息不丢。
-    record = { ...payload, id: localId(), createdAt: new Date().toISOString(), offline: true }
+  } catch (error) {
+    const status =
+      (error as { statusCode?: number })?.statusCode ??
+      (error as { data?: { statusCode?: number } })?.data?.statusCode ??
+      0
+
+    // 表单内容被服务端拒绝（4xx）：把提示放回对应字段，不能假装提交成功。
+    if (status >= 400 && status < 500) {
+      const data = (error as { data?: { statusMessage?: string; message?: string; data?: { field?: keyof typeof errors } } })?.data
+      const message = data?.statusMessage || data?.message || '提交失败，请检查填写内容'
+      const field = data?.data?.field
+      if (field && field in errors) errors[field] = message
+      else submitError.value = message
+      submitting.value = false
+      await nextTick()
+      document.querySelector('.apply-error, .apply-submit-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
+
+    // 断网或服务端异常：先把这份存进本机待补交队列，再给一张 LOCAL 凭证。
+    const queued = queuePendingSignup(payload)
+    pendingCount.value = readPendingSignups().length
+    record = { ...payload, id: queued.localId, createdAt: queued.createdAt, offline: true }
   }
 
   receipt.value = record
@@ -151,6 +164,14 @@ function startOver() {
   })
 }
 
+onMounted(async () => {
+  pendingCount.value = readPendingSignups().length
+  if (!pendingCount.value) return
+  // 之前没送出去的报名，能连上服务端时自动补交。
+  const result = await flushPendingSignups((pending) => postSignup(pending))
+  pendingCount.value = result.remaining
+})
+
 onUnmounted(stopTicker)
 
 function formatTime(iso: string) {
@@ -174,6 +195,7 @@ function formatTime(iso: string) {
         <div class="apply-strip">
           <p class="section-index">05 / APPLICATION · 入社报名</p>
           <span class="apply-strip-right">
+            <span v-if="pendingCount" class="apply-strip-note">本机有 {{ pendingCount }} 份待补交</span>
             <NuxtLink class="apply-back" to="/">← ITEx 首页</NuxtLink>
           </span>
         </div>
@@ -218,7 +240,7 @@ function formatTime(iso: string) {
 
             <div class="receipt-code" aria-hidden="true" />
             <p class="receipt-foot">
-              <span v-if="receipt.offline">当前站点未连接服务端，这份记录只存在这台设备的浏览器里。想确保我们收到，请把编号发到 QQ 群。</span>
+              <span v-if="receipt.offline">当前站点连不上服务端，这份报名先存在这台设备的浏览器里；网络恢复后重新打开本页会自动补交。稳妥起见，也可以把内容发到 QQ 群。</span>
               <span v-else>已经记到社团的报名名单里。后续活动时间和地点会在 QQ 群公布。</span>
               <a href="https://qm.qq.com/q/Ypgmr1rfyI" target="_blank" rel="noopener">QQ 群 · 1076741511 ↗</a>
             </p>
@@ -333,9 +355,12 @@ function formatTime(iso: string) {
             </section>
 
             <div class="apply-submit">
-              <p class="apply-note">
-                提交后会生成专属你的ITEx Passport。
-              </p>
+              <div class="apply-submit-copy">
+                <p class="apply-note">
+                  提交后会生成专属你的ITEx Passport。
+                </p>
+                <p v-if="submitError" class="apply-submit-error">{{ submitError }}</p>
+              </div>
               <button type="submit" class="submit-button" :disabled="submitting">
                 <span>{{ submitting ? '正在提交…' : '提交报名' }}</span>
                 <b aria-hidden="true">↗</b>
