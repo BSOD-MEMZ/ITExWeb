@@ -106,7 +106,7 @@ ITEx/
 
 正文中文字体是 `public/fonts/Cubic_11.woff2`（像素字体，不做子集化，约 400 KB），标题用 `font-source/` 里的 Nano（丙戌黑体像素体，经 `npm run fonts:subset` 子集化）。等宽标签的字体栈是 `Consolas, "Courier New", Cubic, "Segoe UI Symbol", monospace`：拉丁用 Consolas，中文用 Cubic，`↗` `‹` `›` 之类符号落 Segoe UI Symbol。正文栈是 `Cubic, "Microsoft YaHei", sans-serif`，Cubic 缺的字（如部分生僻字）落微软雅黑。
 
-原来的 Lemi（乐米像素体）已经停用，字形由 Cubic 接管：Cubic 覆盖更全（10303 个字形，Lemi 只有 3671 个，且缺「雫」字），也省掉了一次额外的字体下载。
+原来的 Lemi（乐米像素体）已经退役，源文件与网页子集都已从项目中删除，字形由 Cubic 接管：Cubic 覆盖更全（10303 个字形，Lemi 只有 3671 个，且缺「雫」字），也省掉了一次额外的字体下载。要恢复 Lemi，从 git 历史里取回 `font-source/lemi-xiang-su-ti.woff2` 即可。
 
 ## 报名管理后台
 
@@ -185,6 +185,8 @@ npm run generate
 ```
 
 脚本会从 `font-source/` 的原始字体生成 `public/fonts/` 中的网页子集字体。原始字体保留在项目内，避免新增文字时丢失字形。
+
+目前只有 Nano 走子集化；Cubic 直接使用 400 KB 原文件，不参与这个流程。
 
 ## 参与原则
 
