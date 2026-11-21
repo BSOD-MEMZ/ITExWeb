@@ -63,7 +63,7 @@ ITEx/
 ├─ server/api/          # 报名提交接口与 /api/admin/* 管理接口
 ├─ server/utils/        # signupStore（报名持久化）、adminSession（后台会话）、apiError（统一错误）
 ├─ utils/signupOffline.ts # 提交失败时的本机待补交队列
-├─ public/fonts/        # Cubic（正文）、Nano、Lemi 字体文件
+├─ public/fonts/        # Cubic（正文与等宽）、Nano（标题）字体文件
 ├─ public/images/       # 水原雫等公开站点素材
 ├─ app.vue              # Nuxt 根组件
 └─ nuxt.config.ts       # Nuxt 配置（含后台密码、/admin 的 noindex 规则）
@@ -104,7 +104,9 @@ ITEx/
 
 页面按「展台模式」设计：同一台电脑摆在那里，同学们轮流上来填，所以**不做任何本机草稿**（不提示"你已经提交过一份"），提交完点「再填一份」就清空表单交给下一个人。能力自评的四个等级各有自己的颜色（Basic 绿 / Advanced 黄 / Expert 红 / Master 紫），滑块与方块的四档位置分别在 25% / 50% / 75% / 100%。
 
-正文中文字体仍是 `font-source/` 里的 Lemi（乐米像素体）；`public/fonts/Cubic_11.woff2`（像素字体，未做子集化，约 400 KB）用在**所有等宽标签**里代替原来的新宋体（`monospace` 下中文会落到 NSimSun）——字体栈是 `Consolas, "Courier New", Cubic, Lemi, "Segoe UI Symbol", monospace`：拉丁用 Consolas，中文用 Cubic，Cubic 缺的字落 Lemi，`↗` 之类符号落 Segoe UI Symbol。
+正文中文字体是 `public/fonts/Cubic_11.woff2`（像素字体，不做子集化，约 400 KB），标题用 `font-source/` 里的 Nano（丙戌黑体像素体，经 `npm run fonts:subset` 子集化）。等宽标签的字体栈是 `Consolas, "Courier New", Cubic, "Segoe UI Symbol", monospace`：拉丁用 Consolas，中文用 Cubic，`↗` `‹` `›` 之类符号落 Segoe UI Symbol。正文栈是 `Cubic, "Microsoft YaHei", sans-serif`，Cubic 缺的字（如部分生僻字）落微软雅黑。
+
+原来的 Lemi（乐米像素体）已经停用，字形由 Cubic 接管：Cubic 覆盖更全（10303 个字形，Lemi 只有 3671 个，且缺「雫」字），也省掉了一次额外的字体下载。
 
 ## 报名管理后台
 
@@ -134,11 +136,11 @@ NUXT_ADMIN_PASSWORD=... NUXT_ADMIN_SESSION_SECRET=... node .output/server/index.
 
 **看整体进度**
 - 五张总量卡：全部、待处理、已联系、已入社、近 7 天（始终基于全部记录，不受筛选影响）。
-- 四张分布卡：方向分布（一人可选多个方向，可点击直接筛选）、能力自评（点击按等级筛选）、近 14 天提交趋势、班级分布。悬停柱子能看到具体数字。
+- 四张分布卡：方向分布（一人可选多个方向，可点击直接筛选）、能力自评（点击按等级筛选）、近 14 天提交趋势、年级分布（点击按年级筛选）。悬停柱子能看到具体数字。
 
 **找到想找的人**
 - 关键字搜索：姓名 / 班级 / 联系方式 / 编号 / 备注 / 自定义方向。
-- 下拉筛选：状态、方向、能力、班级（带各班人数）、提交日期区间。
+- 下拉筛选：状态、方向、能力、年级（班级前两位，带各年级人数）、提交日期区间。
 - 快捷筛选：待处理 / 已入社 / 今天 / 近 7 天 / 疑似重复。
 - 五种排序：最新提交、最早提交、最近改动、能力高→低、按姓名（拼音序）。
 - 筛选条件会写回 URL，刷新页面、把链接发给自己都能复原同一视图。
@@ -161,7 +163,7 @@ NUXT_ADMIN_PASSWORD=... NUXT_ADMIN_SESSION_SECRET=... node .output/server/index.
 | `GET /api/admin/session` | 后台是否启用 / 当前是否已登录 |
 | `POST /api/admin/login` | 登录，body `{ password }` |
 | `POST /api/admin/logout` | 退出登录（清 cookie） |
-| `GET /api/admin/signups` | 名单，支持 `q` / `status` / `direction` / `level` / `className` / `from` / `to` / `duplicate` / `sort` / `page` / `pageSize` / `tz` |
+| `GET /api/admin/signups` | 名单，支持 `q` / `status` / `direction` / `level` / `grade` / `from` / `to` / `duplicate` / `sort` / `page` / `pageSize` / `tz` |
 | `PATCH /api/admin/signups/:id` | 改状态、内部备注或任意表单字段 |
 | `DELETE /api/admin/signups/:id` | 删除一条（进回收站） |
 | `POST /api/admin/signups/bulk` | 批量操作，body `{ action, ids, status? }`，`action` 为 `status` / `delete` / `restore` / `purge` |
@@ -169,6 +171,8 @@ NUXT_ADMIN_PASSWORD=... NUXT_ADMIN_SESSION_SECRET=... node .output/server/index.
 | `GET /api/admin/signups/export` | 导出 CSV（接受同样的筛选参数） |
 
 `from` / `to` 是本地日期（`YYYY-MM-DD`，含当天），`tz` 是客户端时区偏移分钟数（东八区为 `480`），服务端据此把 UTC 时间戳折算成使用者眼里的日历日；不传按东八区处理。
+
+`grade` 是年级，取班级前两位（`2601` → `26`），传 `26` 即筛出该年级全部班级；CSV 导出也带一列「年级」。
 
 ## 字体子集化
 

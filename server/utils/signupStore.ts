@@ -383,6 +383,22 @@ function normalizeDay(value: unknown): string {
   return Number.isNaN(time) || new Date(time).toISOString().slice(0, 10) !== day ? '' : day
 }
 
+const GRADE_PATTERN = /^\d{2}$/
+
+/**
+ * 年级 = 班级的前两位（`2601` → `26`，`2026级3班` 这种取不到就当空）。
+ * 统一在服务端算，避免筛选、统计、导出的口径不一致。
+ */
+export function gradeOf(className: string): string {
+  const matched = /^(\d{2})/.exec(String(className ?? '').trim())
+  return matched ? matched[1] : ''
+}
+
+function normalizeGrade(value: unknown): string {
+  const grade = typeof value === 'string' ? value.trim() : ''
+  return GRADE_PATTERN.test(grade) ? grade : ''
+}
+
 // ---------------------------------------------------------------------------
 // 查询条件
 // ---------------------------------------------------------------------------
@@ -415,9 +431,10 @@ function buildWhere(query: SignupListQuery): Where {
     params.level = query.level
   }
 
-  if (query.className) {
-    clauses.push('class_name = @className')
-    params.className = query.className
+  if (query.grade) {
+    // 年级是班级的前两位，用 SUBSTR 取前两位再比较，和 gradeOf() 的口径一致。
+    clauses.push('SUBSTR(class_name, 1, 2) = @grade')
+    params.grade = query.grade
   }
 
   // 日期范围：把本地日历日换算成 UTC 边界再比较，字符串比较即可命中 created_at 索引。
@@ -490,11 +507,18 @@ function buildStats(db: Db, offsetMinutes: number): SignupStats {
     levelCounts[level] += Number(item.n)
   }
 
-  const classes = (
-    db
-      .prepare('SELECT class_name AS name, COUNT(*) AS n FROM signups GROUP BY class_name ORDER BY n DESC, class_name ASC')
-      .all() as { name: string; n: number }[]
-  ).map((item) => ({ name: item.name, count: Number(item.n) }))
+  // 年级分布：班级前两位。班级本身格式不统一（有 2610 也有 26-01），
+  // 所以取前两位后在 JS 里聚，保证和筛选用的 gradeOf() 完全同一口径。
+  const gradeTally = new Map<string, number>()
+  for (const item of db.prepare('SELECT class_name FROM signups').all() as { class_name: string }[]) {
+    const grade = gradeOf(item.class_name)
+    if (!grade) continue
+    gradeTally.set(grade, (gradeTally.get(grade) ?? 0) + 1)
+  }
+  const grades = [...gradeTally.entries()]
+    .map(([name, count]) => ({ name, count }))
+    // 年级从高到低（28 届比 26 届高），同人数时按年级排。
+    .sort((left, right) => right.name.localeCompare(left.name))
 
   // 涉及重复报名的记录总条数（同一条只算一次），0 表示没有可疑提交。
   const duplicates = countBy(
@@ -530,7 +554,7 @@ function buildStats(db: Db, offsetMinutes: number): SignupStats {
     duplicates,
     directions: directionCounts,
     levels: levelCounts,
-    classes,
+    grades,
     trend
   }
 }
@@ -574,7 +598,7 @@ export function parseSignupListQuery(raw: Record<string, unknown>): SignupListQu
     status: isSignupStatus(raw.status) ? raw.status : 'all',
     direction: isSignupDirectionId(raw.direction) ? raw.direction : 'all',
     level: Number.isInteger(level) && level >= 0 && level <= 3 ? level : 'all',
-    className: typeof raw.className === 'string' ? raw.className.trim().slice(0, 24) : '',
+    grade: normalizeGrade(raw.grade),
     from: normalizeDay(raw.from),
     to: normalizeDay(raw.to),
     duplicate: flag(raw.duplicate),
@@ -899,6 +923,7 @@ export function signupsToCsv(records: SignupRecord[]): string {
     '编号',
     '姓名',
     '班级',
+    '年级',
     '能力自评',
     '想参与的方向',
     '自定义方向',
@@ -914,6 +939,7 @@ export function signupsToCsv(records: SignupRecord[]): string {
     record.id,
     record.name,
     record.className,
+    gradeOf(record.className),
     levelLabel(record.level),
     record.directions.map(directionLabel).join(' / '),
     record.custom,

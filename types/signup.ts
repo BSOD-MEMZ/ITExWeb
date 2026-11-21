@@ -50,8 +50,8 @@ export type SignupRecord = SignupInput & {
 /** 趋势图的一个点：某个「本地日期」的提交量。 */
 export type SignupTrendPoint = { date: string; count: number }
 
-/** 班级分布（管理后台的班级筛选下拉也用它）。 */
-export type SignupClassCount = { name: string; count: number }
+/** 年级分布。`name` 是班级前两位（如 `26` 表示 2026 级）。 */
+export type SignupGradeCount = { name: string; count: number }
 
 export type SignupStats = {
   total: number
@@ -66,8 +66,8 @@ export type SignupStats = {
   directions: Record<SignupDirectionId, number>
   /** 下标就是能力等级（0–3），值是该等级的人数。 */
   levels: number[]
-  /** 班级分布，按人数降序。 */
-  classes: SignupClassCount[]
+  /** 年级分布，按年级从高到低。 */
+  grades: SignupGradeCount[]
   /** 最近 14 天（含今天）的提交趋势，按本地日期切分。 */
   trend: SignupTrendPoint[]
 }
@@ -79,8 +79,8 @@ export type SignupListQuery = {
   status?: SignupStatus | 'all'
   direction?: SignupDirectionId | 'all'
   level?: number | 'all'
-  /** 精确匹配班级。 */
-  className?: string
+  /** 年级：班级的前两位（如 `26`）。 */
+  grade?: string
   /** 本地日期（YYYY-MM-DD），含当天。 */
   from?: string
   to?: string

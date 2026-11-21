@@ -46,7 +46,7 @@ const filters = reactive({
   status: 'all' as SignupStatus | 'all',
   direction: 'all' as SignupDirectionId | 'all',
   level: 'all' as number | 'all',
-  className: '',
+  grade: '',
   from: '',
   to: '',
   duplicate: false,
@@ -87,7 +87,7 @@ const activeFilters = computed(() => {
   if (filters.status !== 'all') count += 1
   if (filters.direction !== 'all') count += 1
   if (filters.level !== 'all') count += 1
-  if (filters.className) count += 1
+  if (filters.grade) count += 1
   if (filters.from || filters.to) count += 1
   if (filters.duplicate) count += 1
   return count
@@ -151,7 +151,7 @@ function listQuery() {
   if (filters.status !== 'all') query.status = filters.status
   if (filters.direction !== 'all') query.direction = filters.direction
   if (filters.level !== 'all') query.level = filters.level
-  if (filters.className) query.className = filters.className
+  if (filters.grade) query.grade = filters.grade
   if (filters.from) query.from = filters.from
   if (filters.to) query.to = filters.to
   if (filters.duplicate) query.duplicate = 1
@@ -384,7 +384,7 @@ function clearFilters() {
     status: 'all',
     direction: 'all',
     level: 'all',
-    className: '',
+    grade: '',
     from: '',
     to: '',
     duplicate: false,
@@ -417,7 +417,7 @@ function syncUrl() {
     if (filters.status !== 'all') params.set('status', filters.status)
     if (filters.direction !== 'all') params.set('direction', filters.direction)
     if (filters.level !== 'all') params.set('level', String(filters.level))
-    if (filters.className) params.set('className', filters.className)
+    if (filters.grade) params.set('grade', filters.grade)
     if (filters.from) params.set('from', filters.from)
     if (filters.to) params.set('to', filters.to)
     if (filters.duplicate) params.set('duplicate', '1')
@@ -444,7 +444,7 @@ function restoreUrl() {
   }
   if (sort === 'oldest' || sort === 'name' || sort === 'level' || sort === 'updated') filters.sort = sort
   filters.q = params.get('q') ?? ''
-  filters.className = params.get('className') ?? ''
+  filters.grade = params.get('grade') ?? ''
   filters.from = params.get('from') ?? ''
   filters.to = params.get('to') ?? ''
   filters.duplicate = params.get('duplicate') === '1'
@@ -475,7 +475,7 @@ function directionLabels(record: SignupRecord) {
 // ---------- 监听 ----------
 
 watch(
-  () => [filters.q, filters.status, filters.direction, filters.level, filters.className, filters.from, filters.to, filters.duplicate, filters.sort],
+  () => [filters.q, filters.status, filters.direction, filters.level, filters.grade, filters.from, filters.to, filters.duplicate, filters.sort],
   () => {
     page.value = 1
     selected.value = []
@@ -574,6 +574,7 @@ onUnmounted(() => {
           :loading="loading"
           @filter-direction="filters.direction = $event as SignupDirectionId"
           @filter-level="filters.level = $event"
+          @filter-grade="filters.grade = $event"
         />
 
         <div class="admin-quick">
@@ -640,11 +641,11 @@ onUnmounted(() => {
               <option v-for="level in levels" :key="level.value" :value="level.value">{{ level.name }} · {{ level.cn }}</option>
             </select>
           </label>
-          <label v-if="stats?.classes?.length" class="admin-select">
-            <span>班级</span>
-            <select v-model="filters.className">
+          <label v-if="stats?.grades?.length" class="admin-select">
+            <span>年级</span>
+            <select v-model="filters.grade">
               <option value="">全部</option>
-              <option v-for="item in stats?.classes ?? []" :key="item.name" :value="item.name">{{ item.name }}（{{ item.count }}）</option>
+              <option v-for="item in stats?.grades ?? []" :key="item.name" :value="item.name">{{ item.name }} 级（{{ item.count }}）</option>
             </select>
           </label>
           <label class="admin-select">

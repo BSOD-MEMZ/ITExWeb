@@ -13,6 +13,7 @@ const props = defineProps<{ stats?: SignupStats; loading?: boolean }>()
 const emit = defineEmits<{
   (event: 'filter-direction', id: string): void
   (event: 'filter-level', level: number): void
+  (event: 'filter-grade', grade: string): void
 }>()
 
 const total = computed(() => props.stats?.total ?? 0)
@@ -55,7 +56,10 @@ const levelRows = computed(() =>
 const trendMax = computed(() => Math.max(1, ...(props.stats?.trend ?? []).map((point) => point.count)))
 const trendTotal = computed(() => (props.stats?.trend ?? []).reduce((sum, point) => sum + point.count, 0))
 
-const classRows = computed(() => (props.stats?.classes ?? []).slice(0, 6))
+/** 年级分布：班级前两位（`26` 表示 2026 级）。人数从多到少，同人数时新年级在前。 */
+const gradeRows = computed(() =>
+  [...(props.stats?.grades ?? [])].sort((left, right) => right.count - left.count || right.name.localeCompare(left.name))
+)
 
 function dayLabel(date: string) {
   return date.slice(5).replace('-', '/')
@@ -128,18 +132,20 @@ function dayLabel(date: string) {
 
       <article class="admin-chart">
         <header>
-          <p>班级分布 <i>CLASSES</i></p>
-          <small>{{ stats?.classes?.length ?? 0 }} 个班级</small>
+          <p>年级分布 <i>GRADES</i></p>
+          <small>{{ stats?.grades?.length ?? 0 }} 个年级 · 点一下筛选</small>
         </header>
         <ul class="chart-bars">
-          <li v-for="row in classRows" :key="row.name">
-            <span class="chart-bar-label is-static">{{ row.name }}</span>
+          <li v-for="row in gradeRows" :key="row.name">
+            <button type="button" class="chart-bar-label" :title="`只看 ${row.name} 级`" @click="emit('filter-grade', row.name)">
+              {{ row.name }} 级
+            </button>
             <span class="chart-bar-track">
               <span class="chart-bar-fill is-class" :style="{ width: `${percent(row.count, total)}%` }" />
             </span>
             <b>{{ row.count }}</b>
           </li>
-          <li v-if="!classRows.length" class="chart-empty">还没有数据</li>
+          <li v-if="!gradeRows.length" class="chart-empty">还没有数据</li>
         </ul>
       </article>
     </div>
