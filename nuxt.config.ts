@@ -24,7 +24,9 @@ export default defineNuxtConfig({
   },
   routeRules: {
     // 后台只给社内用：不参与静态预渲染，也不要被搜索引擎收录。
+    // `/admin/**` 覆盖子页（/admin/stats、/admin/roster），`/admin` 本身单独一条，glob 不匹配空路径。
     '/admin': { prerender: false, headers: { 'x-robots-tag': 'noindex, nofollow' } },
+    '/admin/**': { prerender: false, headers: { 'x-robots-tag': 'noindex, nofollow' } },
     '/api/admin/**': { headers: { 'cache-control': 'no-store' } }
   },
   devtools: { enabled: true }

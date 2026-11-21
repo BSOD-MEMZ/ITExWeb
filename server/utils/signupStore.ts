@@ -62,6 +62,12 @@ export type SignupPatch = Partial<SignupInput> & {
   adminNote?: string
 }
 
+/** 新建记录时的附加项：后台手工录入可以直接指定流转状态和内部备注。 */
+export type SignupCreateOptions = {
+  status?: SignupStatus
+  adminNote?: string
+}
+
 // ---------------------------------------------------------------------------
 // 连接与建表
 // ---------------------------------------------------------------------------
@@ -559,6 +565,14 @@ function buildStats(db: Db, offsetMinutes: number): SignupStats {
   }
 }
 
+/** 统计页单独取数：只看全库概况，不掺任何筛选条件。 */
+export async function getSignupStats(query: SignupListQuery = {}): Promise<SignupStats> {
+  const db = getDb()
+  // 和名单页一样顺手清理过期回收站，避免统计页开到很晚也没人清。
+  purgeExpiredTrash(db)
+  return buildStats(db, tzOffsetOf(query.tz))
+}
+
 function clampPageSize(value: unknown): number {
   const size = Math.trunc(Number(value))
   if (!Number.isFinite(size) || size <= 0) return DEFAULT_PAGE_SIZE
@@ -609,9 +623,13 @@ export function parseSignupListQuery(raw: Record<string, unknown>): SignupListQu
   }
 }
 
-export async function createSignup(input: SignupInput): Promise<SignupRecord> {
+export async function createSignup(input: SignupInput, options: SignupCreateOptions = {}): Promise<SignupRecord> {
   const db = getDb()
   const insert = db.prepare(INSERT_SQL)
+
+  // 公开报名表固定落在「待处理」；只有在后台手工录入时才会指定别的状态。
+  const status: SignupStatus = isSignupStatus(options.status) ? options.status : 'pending'
+  const adminNote = multiline(options.adminNote, 500)
 
   // 编号分配：
   // 1. 计数器只增不减（见 signup_counters 注释），删记录不会让号被复用；
@@ -640,8 +658,8 @@ export async function createSignup(input: SignupInput): Promise<SignupRecord> {
     const record: SignupRecord = {
       ...input,
       id: `${prefix}${String(nextSequence).padStart(4, '0')}`,
-      status: 'pending',
-      adminNote: '',
+      status,
+      adminNote,
       createdAt: now.toISOString(),
       updatedAt: now.toISOString()
     }

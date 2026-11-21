@@ -1,4 +1,4 @@
-import type { SignupBulkAction } from '../../../types/signup'
+import type { SignupBulkAction } from '../../../../types/signup'
 
 /**
  * 批量操作：改状态 / 删除 / 恢复 / 彻底删除。

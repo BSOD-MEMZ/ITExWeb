@@ -53,13 +53,15 @@ npm run preview
 ```text
 ITEx/
 ├─ assets/css/          # 全局视觉样式与响应式规则（admin.css 是报名后台）
-├─ components/          # 首屏、导航、项目卡片、页尾等组件（AdminStatsPanel / AdminSignupEditor 是后台的统计与编辑块）
+├─ components/          # 首屏、导航、项目卡片、页尾等组件（AdminStatsPanel / AdminSignupEditor / AdminSignupNew 是后台的统计、编辑与新建块）
 ├─ data/site.ts         # 社团方向与理念等内容数据
 ├─ data/apply.ts        # 报名表的能力等级与活动类别
 ├─ types/signup.ts      # 报名数据结构与状态枚举（页面、接口、后台共用）
 ├─ pages/index.vue      # 官网首页
 ├─ pages/signup.vue     # 入社报名表（独立页面，首页只在页脚留入口）
-├─ pages/admin.vue      # 报名名单管理后台（不加入口，只能直接访问 /admin）
+├─ composables/useAdmin.ts # 后台两页共用的会话、提示条与时间格式
+├─ pages/admin.vue      # 后台外壳：登录闸门 + 顶栏 + 页面切换（不加入口，只能直接访问 /admin）
+├─ pages/admin/         # 后台子页：stats.vue（统计）、roster.vue（名单）
 ├─ server/api/          # 报名提交接口与 /api/admin/* 管理接口
 ├─ server/utils/        # signupStore（报名持久化）、adminSession（后台会话）、apiError（统一错误）
 ├─ utils/signupOffline.ts # 提交失败时的本机待补交队列
@@ -74,7 +76,7 @@ ITEx/
 - 调整社团实践方向：编辑 `data/site.ts` 中的 `projects`。
 - 调整首页文案、奖项和联动信息：编辑 `pages/index.vue`。
 - 调整报名表的能力等级、活动类别：编辑 `data/apply.ts`（方向 id 同时被 `types/signup.ts` 的白名单校验使用）。
-- 调整报名后台的列表与统计：编辑 `pages/admin.vue`、`components/AdminStatsPanel.vue`、`components/AdminSignupEditor.vue` 与 `assets/css/admin.css`。
+- 调整报名后台：外壳与登录态在 `pages/admin.vue` + `composables/useAdmin.ts`，统计页在 `pages/admin/stats.vue` + `components/AdminStatsPanel.vue`，名单页在 `pages/admin/roster.vue` + `components/AdminSignupEditor.vue`（改单条）/ `components/AdminSignupNew.vue`（新建），样式都在 `assets/css/admin.css`。
 - 调整布局与视觉：优先编辑 `assets/css/skills.css`；报名页样式在 `assets/css/signup.css`；基础设计 token 位于 `assets/css/main.css`。
 - 水原雫（Shizuku Mizuhara）立绘署名：由 2511 ScreenRain 绘制。
 
@@ -110,7 +112,14 @@ ITEx/
 
 ## 报名管理后台
 
-地址：`/admin`。不加入口、不预渲染、带 `X-Robots-Tag: noindex`，只能靠知道地址访问。
+地址：`/admin`（会自动进「统计」页）。不加入口、不预渲染、带 `X-Robots-Tag: noindex`，只能靠知道地址访问。
+
+后台分两页，顶栏中间切换，两页共用一次登录：
+
+| 页面 | 地址 | 干什么 |
+| --- | --- | --- |
+| 统计 | `/admin/stats` | 只看数字：总量、方向 / 能力 / 年级分布、近 14 天趋势。图上每行都能点，点了带着筛选条件跳到名单页。 |
+| 名单 | `/admin/roster` | 干活的地方：筛选、搜索、逐条改、批量改、手工新建、回收站、导出 CSV。 |
 
 ### 启用方式
 
@@ -134,24 +143,30 @@ NUXT_ADMIN_PASSWORD=... NUXT_ADMIN_SESSION_SECRET=... node .output/server/index.
 
 ### 能做什么
 
-**看整体进度**
-- 五张总量卡：全部、待处理、已联系、已入社、近 7 天（始终基于全部记录，不受筛选影响）。
-- 四张分布卡：方向分布（一人可选多个方向，可点击直接筛选）、能力自评（点击按等级筛选）、近 14 天提交趋势、年级分布（点击按年级筛选）。悬停柱子能看到具体数字。
+**统计页：看整体进度**
+- 五张总量卡：全部、待处理、已联系、已入社、近 7 天（始终基于全部记录，不受名单页筛选影响）。
+- 四张分布卡：方向分布（一人可选多个方向）、能力自评、近 14 天提交趋势、年级分布。前三张点一下直接带着条件进名单页，悬停柱子能看到具体数字。
+- 「导出全部 CSV」无视筛选，导出整库。
 
-**找到想找的人**
+**名单页：找到想找的人**
 - 关键字搜索：姓名 / 班级 / 联系方式 / 编号 / 备注 / 自定义方向。
 - 下拉筛选：状态、方向、能力、年级（班级前两位，带各年级人数）、提交日期区间。
 - 快捷筛选：待处理 / 已入社 / 今天 / 近 7 天 / 疑似重复。
 - 五种排序：最新提交、最早提交、最近改动、能力高→低、按姓名（拼音序）。
 - 筛选条件会写回 URL，刷新页面、把链接发给自己都能复原同一视图。
 
-**改数据**
+**名单页：补录新报名**
+- 点「+ 新建报名」展开补录表单，字段和公开报名表完全一致（服务端走同一套校验），额外可以指定**初始状态**和**内部备注**——补录时往往已经知道对方去向了。
+- 编号仍由服务端统一分配，从 `0021` 起，不会占用 `0000–0020` 的预留段。
+- 提交后表单自动清空、保持展开，方便连着补录好几条；如果当时带着筛选，提示里会说明「当前筛选下可能看不到它」。
+
+**名单页：改数据**
 - 展开「详情」可以改**全部字段**：姓名、班级、能力自评、方向（多选）、自定义说明、联系方式、其它信息、内部备注。有「未保存」标记，可一键撤销。
 - 状态流转有四个色标按钮（待处理 / 已联系 / 已入社 / 已归档），行内也有下拉框可以快速改。
 - 批量操作：勾选多条后统一改状态或移入回收站（一次最多 500 条）。
 - 同名同班的记录会标红「重复?」，配合「疑似重复」快捷筛选能快速发现重复提交。
 
-**导出与删除**
+**名单页：导出与删除**
 - 导出 CSV：带 BOM，Excel 直接打开中文不乱码；导出当前筛选结果，含状态与内部备注，`= + - @` 开头的内容会转义防公式注入。
 - 删除先进回收站（30 天），可以恢复；也可在回收站里彻底删除。单条删除需要点两次确认。
 
@@ -164,6 +179,8 @@ NUXT_ADMIN_PASSWORD=... NUXT_ADMIN_SESSION_SECRET=... node .output/server/index.
 | `POST /api/admin/login` | 登录，body `{ password }` |
 | `POST /api/admin/logout` | 退出登录（清 cookie） |
 | `GET /api/admin/signups` | 名单，支持 `q` / `status` / `direction` / `level` / `grade` / `from` / `to` / `duplicate` / `sort` / `page` / `pageSize` / `tz` |
+| `POST /api/admin/signups` | 后台手工新建一条（补录），body 同报名表字段，另可带 `status` / `adminNote`；返回 `{ record }` |
+| `GET /api/admin/signups/stats` | 统计页数据，只认 `tz`（其余筛选不影响统计），返回 `{ stats }` |
 | `PATCH /api/admin/signups/:id` | 改状态、内部备注或任意表单字段 |
 | `DELETE /api/admin/signups/:id` | 删除一条（进回收站） |
 | `POST /api/admin/signups/bulk` | 批量操作，body `{ action, ids, status? }`，`action` 为 `status` / `delete` / `restore` / `purge` |
