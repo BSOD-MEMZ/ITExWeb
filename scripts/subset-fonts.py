@@ -1,4 +1,8 @@
-"""Subset source fonts to only the glyphs currently used by the website."""
+"""Subset source fonts to only the glyphs currently used by the website.
+
+正文与等宽标签统一用 Cubic（`public/fonts/Cubic_11.woff2`，约 400 KB，不做子集化，
+直接用原文件），所以这里只需要处理标题用的 Nano。Lemi 已停用。
+"""
 
 from pathlib import Path
 from fontTools import subset
@@ -15,7 +19,7 @@ for path in ROOT.rglob("*"):
     if path.suffix in SOURCE_EXTENSIONS and not {"node_modules", ".nuxt", ".output"}.intersection(path.parts):
         text += path.read_text(encoding="utf-8")
 
-for name in ("nano-byong-gye-hei", "lemi-xiang-su-ti"):
+for name in ("nano-byong-gye-hei",):
     source = ROOT / "font-source" / f"{name}.woff2"
     target = ROOT / "public" / "fonts" / f"{name}.woff2"
     options = subset.Options()

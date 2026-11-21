@@ -156,7 +156,7 @@ html.is-presenting main > section.deck-slide.deck-out-prev {
   border-top: 3px solid var(--yellow);
   background: var(--ink);
   color: var(--paper);
-  font: 400 12px/1 Consolas, "Courier New", Cubic, Lemi, "Segoe UI Symbol", monospace;
+  font: 400 12px/1 Consolas, "Courier New", Cubic, "Segoe UI Symbol", monospace;
   pointer-events: auto;
 }
 
@@ -232,7 +232,7 @@ html.is-presenting main > section.deck-slide.deck-out-prev {
 .deck-title {
   overflow: hidden;
   color: var(--paper);
-  font-family: Lemi, "Microsoft YaHei", sans-serif;
+  font-family: Cubic, "Microsoft YaHei", sans-serif;
   font-size: 16px;
   text-overflow: ellipsis;
   white-space: nowrap;

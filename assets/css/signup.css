@@ -8,9 +8,9 @@
 }
 .apply-strip .section-index { margin: 0; }
 .apply-strip-right { display: flex; align-items: center; gap: 18px; }
-.apply-strip-note { margin: 0; font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .04em; color: #6d655a; }
+.apply-strip-note { margin: 0; font: 400 11px Consolas,"Courier New",Cubic,"Segoe UI Symbol",monospace; letter-spacing: .04em; color: #6d655a; }
 .apply-back {
-  color: inherit; text-decoration: none; font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .04em;
+  color: inherit; text-decoration: none; font: 400 11px Consolas,"Courier New",Cubic,"Segoe UI Symbol",monospace; letter-spacing: .04em;
   border-bottom: 2px solid var(--ink); padding-bottom: 1px;
 }
 .apply-back:hover { color: var(--red); border-color: var(--red); }
@@ -24,11 +24,11 @@
 .apply-rail {
   display: flex; flex-direction: column; gap: 22px; padding: 26px 24px; border-right: var(--line);
 }
-.rail-title { margin: 0; font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .1em; }
+.rail-title { margin: 0; font: 400 11px Consolas,"Courier New",Cubic,"Segoe UI Symbol",monospace; letter-spacing: .1em; }
 .rail-steps { margin: 0; padding: 0; list-style: none; border-top: 2px solid var(--ink); }
 .rail-steps li { display: flex; gap: 12px; align-items: baseline; padding: 11px 0; border-bottom: 2px solid var(--ink); font-size: 14px; }
-.rail-steps b { font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .06em; }
-.rail-note { margin: 0; font: 400 11px/1.8 Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; color: #6d655a; }
+.rail-steps b { font: 400 11px Consolas,"Courier New",Cubic,"Segoe UI Symbol",monospace; letter-spacing: .06em; }
+.rail-note { margin: 0; font: 400 11px/1.8 Consolas,"Courier New",Cubic,"Segoe UI Symbol",monospace; color: #6d655a; }
 .rail-mark {
   margin: auto 0 0; font: 400 46px/.8 Nano, sans-serif; letter-spacing: -.08em;
   color: var(--yellow); text-shadow: 3px 3px 0 var(--ink);
@@ -41,14 +41,14 @@
 .block-head span { font-size: 18px; }
 .block-head em {
   padding: 3px 6px; background: var(--ink); color: var(--paper);
-  font: 400 10px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; font-style: normal; letter-spacing: .12em;
+  font: 400 10px Consolas,"Courier New",Cubic,"Segoe UI Symbol",monospace; font-style: normal; letter-spacing: .12em;
 }
 
 .apply-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; }
 .apply-field { display: flex; flex-direction: column; gap: 7px; }
 .apply-field.is-wide { grid-column: 1 / -1; }
 .apply-label { display: flex; align-items: baseline; gap: 8px; font-size: 14px; }
-.apply-label i { font: 400 10px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; font-style: normal; letter-spacing: .1em; color: #6d655a; }
+.apply-label i { font: 400 10px Consolas,"Courier New",Cubic,"Segoe UI Symbol",monospace; font-style: normal; letter-spacing: .1em; color: #6d655a; }
 
 .apply-field input,
 .apply-field textarea {
@@ -63,14 +63,14 @@
 .apply-field input.is-error,
 .apply-field textarea.is-error { border-color: var(--red); box-shadow: 5px 5px 0 var(--red); }
 .apply-field textarea { min-height: 108px; resize: vertical; }
-.apply-error { font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; color: var(--red); }
-.apply-counter { align-self: flex-end; font: 400 10px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; color: #6d655a; }
+.apply-error { font: 400 11px Consolas,"Courier New",Cubic,"Segoe UI Symbol",monospace; color: var(--red); }
+.apply-counter { align-self: flex-end; font: 400 10px Consolas,"Courier New",Cubic,"Segoe UI Symbol",monospace; color: #6d655a; }
 
 .level-stage { --lv: var(--green); display: grid; gap: 14px; }
 .level-readout { display: flex; align-items: baseline; gap: 12px; margin: 0; }
 .level-readout b { font: 400 clamp(38px, 4.6vw, 58px)/.9 Nano, sans-serif; letter-spacing: -.05em; }
 .level-readout span { padding: 3px 7px; background: var(--lv); color: var(--ink); font-size: 12px; transition: background .18s ease; }
-.level-readout em { margin-left: auto; font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; font-style: normal; letter-spacing: .1em; color: #6d655a; }
+.level-readout em { margin-left: auto; font: 400 11px Consolas,"Courier New",Cubic,"Segoe UI Symbol",monospace; font-style: normal; letter-spacing: .1em; color: #6d655a; }
 
 /* 轨道四等分：四个等级分别落在 25% / 50% / 75% / 100% 的边界上。
    原生 range 只负责交互（透明），可视的条和滑块都用 div 画，才能和下面的方块对齐。 */
@@ -116,14 +116,14 @@
   transition: background .15s ease, transform .15s ease, box-shadow .15s ease;
 }
 .level-tick:first-child { margin-left: 0; }
-.level-tick b { display: block; font: 400 15px/1.2 Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .02em; }
+.level-tick b { display: block; font: 400 15px/1.2 Consolas,"Courier New",Cubic,"Segoe UI Symbol",monospace; letter-spacing: .02em; }
 .level-tick span { font-size: 11px; }
 .level-tick:hover { background: var(--yellow); }
 /* 选中的方块：墨底纸字，投影换成该等级自己的颜色（Basic 绿 / Advanced 黄 / Expert 红 / Master 紫）。 */
 .level-tick.is-active { background: var(--ink); color: var(--paper); box-shadow: 5px 5px 0 var(--lv); z-index: 1; }
 .level-tick.is-active:hover { background: var(--ink); }
 .level-note { margin: 0; font-size: 14px; line-height: 1.7; }
-.level-note span { display: block; margin-top: 5px; font: 400 10px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .06em; color: #6d655a; }
+.level-note span { display: block; margin-top: 5px; font: 400 10px Consolas,"Courier New",Cubic,"Segoe UI Symbol",monospace; letter-spacing: .06em; color: #6d655a; }
 
 .dir-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
 .dir-grid.is-error { outline: 3px solid var(--red); outline-offset: 4px; }
@@ -137,7 +137,7 @@
   content: ''; position: absolute; top: 12px; right: 12px; width: 12px; height: 12px;
   border: 2px solid var(--ink); background: var(--tone, var(--paper));
 }
-.dir-chip i { font: 400 10px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; font-style: normal; letter-spacing: .12em; }
+.dir-chip i { font: 400 10px Consolas,"Courier New",Cubic,"Segoe UI Symbol",monospace; font-style: normal; letter-spacing: .12em; }
 .dir-chip b { font: 400 20px/1.05 Nano, sans-serif; letter-spacing: -.03em; }
 .dir-chip span { font-size: 12px; color: #4c463d; }
 .dir-chip:hover { transform: translate(-2px, -2px); box-shadow: 4px 4px 0 var(--ink); }
@@ -155,17 +155,17 @@
   border: 3px dashed var(--ink); background: #fffdf7;
 }
 .dir-custom .apply-field { gap: 8px; }
-.dir-hint { margin: 12px 0 0; font: 400 11px/1.6 Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; color: #6d655a; }
+.dir-hint { margin: 12px 0 0; font: 400 11px/1.6 Consolas,"Courier New",Cubic,"Segoe UI Symbol",monospace; color: #6d655a; }
 
 .apply-submit {
   display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;
   padding: 22px 30px; background: var(--yellow);
 }
-.apply-note { margin: 0; font: 400 11px/1.8 Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .04em; }
+.apply-note { margin: 0; font: 400 11px/1.8 Consolas,"Courier New",Cubic,"Segoe UI Symbol",monospace; letter-spacing: .04em; }
 .apply-submit-copy { display: grid; gap: 8px; }
 .apply-submit-error {
   margin: 0; padding: 8px 12px; border: 3px solid var(--ink); background: var(--red); color: var(--ink);
-  font: 400 12px/1.6 Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .02em;
+  font: 400 12px/1.6 Consolas,"Courier New",Cubic,"Segoe UI Symbol",monospace; letter-spacing: .02em;
 }
 .submit-button {
   display: inline-flex; align-items: center; gap: 32px; padding: 15px 22px; border: 0;
@@ -182,16 +182,16 @@
   display: flex; align-items: flex-start; justify-content: space-between; gap: 18px;
   padding: 24px 30px; border-bottom: var(--line); background: var(--yellow);
 }
-.receipt-label { margin: 0 0 8px; font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .12em; }
+.receipt-label { margin: 0 0 8px; font: 400 11px Consolas,"Courier New",Cubic,"Segoe UI Symbol",monospace; letter-spacing: .12em; }
 .receipt-id { margin: 0; font: 400 clamp(26px, 4vw, 46px)/.95 Nano, sans-serif; letter-spacing: -.04em; }
 .receipt-stamp {
   padding: 6px 10px; border: 3px solid var(--ink); background: var(--red);
-  font: 400 12px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .1em; transform: rotate(-4deg);
+  font: 400 12px Consolas,"Courier New",Cubic,"Segoe UI Symbol",monospace; letter-spacing: .1em; transform: rotate(-4deg);
 }
 .receipt-list { margin: 0; }
 .receipt-row { display: grid; grid-template-columns: 160px 1fr; gap: 18px; padding: 14px 30px; border-bottom: 2px solid var(--ink); }
 .receipt-row:last-child { border-bottom: 0; }
-.receipt-row dt { padding-top: 4px; font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .08em; color: #4c463d; }
+.receipt-row dt { padding-top: 4px; font: 400 11px Consolas,"Courier New",Cubic,"Segoe UI Symbol",monospace; letter-spacing: .08em; color: #4c463d; }
 .receipt-row dd { margin: 0; font-size: 16px; line-height: 1.6; }
 .receipt-level { font: 400 22px Nano, sans-serif; }
 .receipt-level-cn { margin-left: 8px; font-size: 12px; }
@@ -206,14 +206,14 @@
 }
 .receipt-foot {
   display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
-  margin: 0; padding: 16px 30px; background: var(--ink); color: var(--paper); font: 400 11px/1.7 Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace;
+  margin: 0; padding: 16px 30px; background: var(--ink); color: var(--paper); font: 400 11px/1.7 Consolas,"Courier New",Cubic,"Segoe UI Symbol",monospace;
 }
 .receipt-foot a { color: var(--yellow); }
 .receipt-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; padding: 18px 30px; background: var(--blue); }
-.receipt-tip { margin-left: auto; font: 400 11px/1.6 Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .04em; }
+.receipt-tip { margin-left: auto; font: 400 11px/1.6 Consolas,"Courier New",Cubic,"Segoe UI Symbol",monospace; letter-spacing: .04em; }
 .ghost-button {
   padding: 10px 14px; border: 3px solid var(--ink); background: var(--paper); color: var(--ink);
-  font: 400 13px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; cursor: pointer;
+  font: 400 13px Consolas,"Courier New",Cubic,"Segoe UI Symbol",monospace; cursor: pointer;
 }
 .ghost-button:hover { background: var(--ink); color: var(--paper); }
 
