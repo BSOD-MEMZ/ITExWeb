@@ -16,7 +16,8 @@ import {
   type SignupRecord,
   type SignupSort,
   type SignupStats,
-  type SignupStatus
+  type SignupStatus,
+  type SignupTrashEntry
 } from '../../types/signup'
 
 /**
@@ -44,6 +45,14 @@ const DEFAULT_PAGE_SIZE = 20
 const MAX_PAGE_SIZE = 200
 const DB_FILE_NAME = 'signups.db'
 const LEGACY_FILE_NAME = 'signups.json'
+/** 删除先落回收站，30 天后才真正消失，误删有救。 */
+const TRASH_RETENTION_DAYS = 30
+/** 一次批量操作最多处理多少条，防止手滑全选后一个请求改掉整库。 */
+const MAX_BULK_IDS = 500
+/** 趋势图看最近多少天。 */
+const TREND_DAYS = 14
+/** 默认按东八区切分日期（没有客户端时区信息时的兜底）。 */
+const DEFAULT_TZ_OFFSET = 480
 
 const DATA_DIR = (process.env.ITEX_DATA_DIR || '').trim() || join(process.cwd(), '.data')
 const DB_FILE = join(DATA_DIR, DB_FILE_NAME)
@@ -76,6 +85,22 @@ CREATE TABLE IF NOT EXISTS signups (
 CREATE INDEX IF NOT EXISTS idx_signups_created_at ON signups(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_signups_status ON signups(status);
 CREATE INDEX IF NOT EXISTS idx_signups_level ON signups(level);
+CREATE INDEX IF NOT EXISTS idx_signups_name ON signups(name, class_name);
+
+-- 回收站：整条记录以 JSON 存着，恢复时原样塞回 signups，不需要跟着改主表结构。
+CREATE TABLE IF NOT EXISTS signup_trash (
+  id          TEXT PRIMARY KEY,
+  payload     TEXT NOT NULL,
+  deleted_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_signup_trash_deleted_at ON signup_trash(deleted_at DESC);
+
+-- 每年一个编号计数器。只增不减：删掉最大号之后再报名也不会复用这个号，
+-- 否则发出去的凭证会和后台里的新记录撞号（回收站里的同号记录也就永远恢复不了）。
+CREATE TABLE IF NOT EXISTS signup_counters (
+  year          TEXT PRIMARY KEY,
+  last_sequence INTEGER NOT NULL
+);
 `
 
 type DbRow = {
@@ -225,6 +250,11 @@ function recordToParams(record: SignupRecord) {
   }
 }
 
+const INSERT_SQL = `INSERT OR IGNORE INTO signups
+   (id, name, class_name, level, directions, custom, contact, note, status, admin_note, created_at, updated_at)
+ VALUES
+   (@id, @name, @class_name, @level, @directions, @custom, @contact, @note, @status, @admin_note, @created_at, @updated_at)`
+
 // ---------------------------------------------------------------------------
 // 旧 JSON 数据一次性导入
 // ---------------------------------------------------------------------------
@@ -273,13 +303,7 @@ function ensureLegacyImported(db: Db) {
     return
   }
 
-  const insert = db.prepare(
-    `INSERT OR IGNORE INTO signups
-       (id, name, class_name, level, directions, custom, contact, note, status, admin_note, created_at, updated_at)
-     VALUES
-       (@id, @name, @class_name, @level, @directions, @custom, @contact, @note, @status, @admin_note, @created_at, @updated_at)`
-  )
-
+  const insert = db.prepare(INSERT_SQL)
   const importAll = db.transaction((items: SignupRecord[]) => {
     for (const record of items) insert.run(recordToParams(record))
   })
@@ -324,14 +348,54 @@ function normalizeLegacyRecord(value: unknown): SignupRecord | null {
 }
 
 // ---------------------------------------------------------------------------
+// 时区辅助：库里全是 UTC ISO 字符串，日期筛选与趋势图按使用者本地日历切分
+// ---------------------------------------------------------------------------
+
+function tzOffsetOf(value: unknown): number {
+  const offset = Number(value)
+  // 只接受 ±14 小时以内的偏移，乱传的值当东八区处理。
+  if (!Number.isFinite(offset) || Math.abs(offset) > 14 * 60) return DEFAULT_TZ_OFFSET
+  return Math.trunc(offset)
+}
+
+/** 把 UTC 时间戳折算成该时区下的 YYYY-MM-DD。 */
+function dayKey(iso: string, offsetMinutes: number): string {
+  const time = Date.parse(iso)
+  if (Number.isNaN(time)) return ''
+  return new Date(time + offsetMinutes * 60 * 1000).toISOString().slice(0, 10)
+}
+
+/** 本地日期 → 该日期 0 点的 UTC 瞬间。 */
+function dayStartUtc(day: string, offsetMinutes: number): number {
+  const [year, month, date] = day.split('-').map((part) => Number(part))
+  return Date.UTC(year, month - 1, date) - offsetMinutes * 60 * 1000
+}
+
+const DAY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/
+
+function normalizeDay(value: unknown): string {
+  const day = typeof value === 'string' ? value.trim() : ''
+  const matched = DAY_PATTERN.exec(day)
+  if (!matched) return ''
+  const [, year, month, date] = matched
+  const time = Date.UTC(Number(year), Number(month) - 1, Number(date))
+  // 2026-02-31 能过正则但不是真日期，用回读比对挡掉。
+  return Number.isNaN(time) || new Date(time).toISOString().slice(0, 10) !== day ? '' : day
+}
+
+// ---------------------------------------------------------------------------
 // 查询条件
 // ---------------------------------------------------------------------------
 
 type Where = { sql: string; params: Record<string, unknown> }
 
+/** 同名同班出现多次的组合——管理后台用来提示「可能重复报名」。 */
+const DUPLICATE_KEYS_SQL = `SELECT name, class_name FROM signups GROUP BY name, class_name HAVING COUNT(*) > 1`
+
 function buildWhere(query: SignupListQuery): Where {
   const clauses: string[] = []
   const params: Record<string, unknown> = {}
+  const offset = tzOffsetOf(query.tz)
 
   const status = query.status && query.status !== 'all' ? query.status : ''
   if (status) {
@@ -351,6 +415,27 @@ function buildWhere(query: SignupListQuery): Where {
     params.level = query.level
   }
 
+  if (query.className) {
+    clauses.push('class_name = @className')
+    params.className = query.className
+  }
+
+  // 日期范围：把本地日历日换算成 UTC 边界再比较，字符串比较即可命中 created_at 索引。
+  const from = normalizeDay(query.from)
+  if (from) {
+    clauses.push('created_at >= @from')
+    params.from = new Date(dayStartUtc(from, offset)).toISOString()
+  }
+  const to = normalizeDay(query.to)
+  if (to) {
+    clauses.push('created_at < @to')
+    params.to = new Date(dayStartUtc(to, offset) + 24 * 60 * 60 * 1000).toISOString()
+  }
+
+  if (query.duplicate) {
+    clauses.push('(name, class_name) IN (' + DUPLICATE_KEYS_SQL + ')')
+  }
+
   const keyword = (query.q ?? '').trim()
   if (keyword) {
     clauses.push(
@@ -367,10 +452,16 @@ function buildWhere(query: SignupListQuery): Where {
 const SQL_ORDER: Record<Exclude<SignupSort, 'name'>, string> = {
   newest: 'created_at DESC',
   oldest: 'created_at ASC',
+  updated: 'updated_at DESC',
   level: 'level DESC, created_at DESC'
 }
 
-function buildStats(db: Db): SignupStats {
+function countBy(db: Db, sql: string, params?: Record<string, unknown>): number {
+  const row = db.prepare(sql).get(params ?? {}) as { n: number | null } | undefined
+  return Number(row?.n ?? 0)
+}
+
+function buildStats(db: Db, offsetMinutes: number): SignupStats {
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
   const row = db
     .prepare(
@@ -385,13 +476,62 @@ function buildStats(db: Db): SignupStats {
     )
     .get({ since }) as Record<string, number | null>
 
+  // 方向分布：一人可选多个，逐行数出来（几百条量级，比拆字符串到 SQL 里干净）。
+  const directionCounts = Object.fromEntries(SIGNUP_DIRECTION_IDS.map((id) => [id, 0])) as Record<SignupDirectionId, number>
+  for (const item of db.prepare('SELECT directions FROM signups').all() as { directions: string }[]) {
+    for (const id of String(item.directions ?? '').split(',')) {
+      if (isSignupDirectionId(id)) directionCounts[id] += 1
+    }
+  }
+
+  const levelCounts = SIGNUP_LEVELS.map(() => 0)
+  for (const item of db.prepare('SELECT level, COUNT(*) AS n FROM signups GROUP BY level').all() as { level: number; n: number }[]) {
+    const level = pickLevel(item.level)
+    levelCounts[level] += Number(item.n)
+  }
+
+  const classes = (
+    db
+      .prepare('SELECT class_name AS name, COUNT(*) AS n FROM signups GROUP BY class_name ORDER BY n DESC, class_name ASC')
+      .all() as { name: string; n: number }[]
+  ).map((item) => ({ name: item.name, count: Number(item.n) }))
+
+  // 涉及重复报名的记录总条数（同一条只算一次），0 表示没有可疑提交。
+  const duplicates = countBy(
+    db,
+    `SELECT COALESCE(SUM(n), 0) AS n FROM (
+       SELECT COUNT(*) AS n FROM signups GROUP BY name, class_name HAVING COUNT(*) > 1
+     )`
+  )
+
+  // 趋势：先按本地日期把窗口内的提交分桶，再补零成连续的 14 天。
+  const trend: { date: string; count: number }[] = []
+  const today = dayKey(new Date().toISOString(), offsetMinutes)
+  const startUtc = new Date(dayStartUtc(today, offsetMinutes) - (TREND_DAYS - 1) * 24 * 60 * 60 * 1000).toISOString()
+  const buckets = new Map<string, number>()
+  for (const item of db.prepare('SELECT created_at FROM signups WHERE created_at >= @start').all({ start: startUtc }) as {
+    created_at: string
+  }[]) {
+    const key = dayKey(item.created_at, offsetMinutes)
+    if (key) buckets.set(key, (buckets.get(key) ?? 0) + 1)
+  }
+  for (let index = TREND_DAYS - 1; index >= 0; index -= 1) {
+    const key = dayKey(new Date(Date.now() - index * 24 * 60 * 60 * 1000).toISOString(), offsetMinutes)
+    trend.push({ date: key, count: buckets.get(key) ?? 0 })
+  }
+
   return {
     total: Number(row.total ?? 0),
     pending: Number(row.pending ?? 0),
     contacted: Number(row.contacted ?? 0),
     accepted: Number(row.accepted ?? 0),
     archived: Number(row.archived ?? 0),
-    last7Days: Number(row.last7Days ?? 0)
+    last7Days: Number(row.last7Days ?? 0),
+    duplicates,
+    directions: directionCounts,
+    levels: levelCounts,
+    classes,
+    trend
   }
 }
 
@@ -402,7 +542,7 @@ function clampPageSize(value: unknown): number {
 }
 
 function normalizeSort(sort: unknown): SignupSort {
-  return sort === 'oldest' || sort === 'name' || sort === 'level' ? sort : 'newest'
+  return sort === 'oldest' || sort === 'name' || sort === 'level' || sort === 'updated' ? sort : 'newest'
 }
 
 /** 取某个筛选条件下的全部记录（导出 / 按姓名排序时用，数据量在几百条量级足够）。 */
@@ -427,13 +567,19 @@ function selectAll(db: Db, query: SignupListQuery): SignupRecord[] {
 export function parseSignupListQuery(raw: Record<string, unknown>): SignupListQuery {
   const level = Number(raw.level)
   const sort = raw.sort
+  const flag = (value: unknown) => value === true || value === '1' || value === 'true'
   return {
     q: typeof raw.q === 'string' ? raw.q : '',
     // 认不出来的筛选值一律当「全部」，不让手改 URL 的请求 500。
     status: isSignupStatus(raw.status) ? raw.status : 'all',
     direction: isSignupDirectionId(raw.direction) ? raw.direction : 'all',
     level: Number.isInteger(level) && level >= 0 && level <= 3 ? level : 'all',
-    sort: sort === 'oldest' || sort === 'name' || sort === 'level' ? sort : 'newest',
+    className: typeof raw.className === 'string' ? raw.className.trim().slice(0, 24) : '',
+    from: normalizeDay(raw.from),
+    to: normalizeDay(raw.to),
+    duplicate: flag(raw.duplicate),
+    tz: tzOffsetOf(raw.tz),
+    sort: normalizeSort(sort),
     page: Number(raw.page) || 1,
     pageSize: Number(raw.pageSize) || 20
   }
@@ -441,25 +587,32 @@ export function parseSignupListQuery(raw: Record<string, unknown>): SignupListQu
 
 export async function createSignup(input: SignupInput): Promise<SignupRecord> {
   const db = getDb()
-  const insert = db.prepare(
-    `INSERT INTO signups
-       (id, name, class_name, level, directions, custom, contact, note, status, admin_note, created_at, updated_at)
-     VALUES
-       (@id, @name, @class_name, @level, @directions, @custom, @contact, @note, @status, @admin_note, @created_at, @updated_at)`
-  )
-  const maxSequence = db.prepare(
+  const insert = db.prepare(INSERT_SQL)
+
+  // 编号分配：
+  // 1. 计数器只增不减（见 signup_counters 注释），删记录不会让号被复用；
+  // 2. 计数器落后于实际数据时（比如手工往库里塞过预留号），取「已用最大值 +1」兜底；
+  // 3. 下限是 0021，给预留段 0000–0020 让路。
+  const usedMax = db.prepare(
     `SELECT COALESCE(MAX(CAST(SUBSTR(id, @offset) AS INTEGER)), 0) AS m
        FROM signups WHERE id LIKE @prefix || '%'`
   )
+  const readCounter = db.prepare('SELECT last_sequence FROM signup_counters WHERE year = ?')
+  const writeCounter = db.prepare(
+    `INSERT INTO signup_counters (year, last_sequence) VALUES (@year, @sequence)
+     ON CONFLICT(year) DO UPDATE SET last_sequence = excluded.last_sequence`
+  )
 
-  // 编号：取已用最大值 +1，而不是按条数 +1——删记录后条数会倒退，
-  // 用条数会让新编号和已经发出去的凭证撞号。
-  // 0000–0020 为预留段，自动编号从 0021 起（已存在的预留记录也要算进最大值，避免撞号）。
   const allocate = db.transaction((): SignupRecord => {
     const now = new Date()
-    const prefix = `${ID_PREFIX}-${now.getFullYear()}-`
-    const { m } = maxSequence.get({ offset: prefix.length + 1, prefix }) as { m: number }
-    const nextSequence = Math.max(Number(m) + 1, FIRST_AUTO_SEQUENCE)
+    const year = String(now.getFullYear())
+    const prefix = `${ID_PREFIX}-${year}-`
+
+    const { m } = usedMax.get({ offset: prefix.length + 1, prefix }) as { m: number }
+    const counter = (readCounter.get(year) as { last_sequence: number } | undefined)?.last_sequence ?? 0
+    const nextSequence = Math.max(Number(m) + 1, Number(counter) + 1, FIRST_AUTO_SEQUENCE)
+
+    writeCounter.run({ year, sequence: nextSequence })
     const record: SignupRecord = {
       ...input,
       id: `${prefix}${String(nextSequence).padStart(4, '0')}`,
@@ -486,44 +639,69 @@ export async function createSignup(input: SignupInput): Promise<SignupRecord> {
   throw lastError
 }
 
+/**
+ * 当前页里哪些记录与别人同名同班（用来在表格里打「疑似重复」标记）。
+ * 用一句 GROUP BY 取全库的重复组合再和本页求交集，比逐条 COUNT 更省事。
+ */
+function duplicateIdSet(db: Db, records: SignupRecord[]): Set<string> {
+  if (!records.length) return new Set()
+  const duplicated = new Set(
+    (
+      db
+        .prepare('SELECT name, class_name FROM signups GROUP BY name, class_name HAVING COUNT(*) > 1')
+        .all() as { name: string; class_name: string }[]
+    ).map((row) => `${row.name}\u0000${row.class_name}`)
+  )
+  const ids = new Set<string>()
+  for (const record of records) {
+    if (duplicated.has(`${record.name}\u0000${record.className}`)) ids.add(record.id)
+  }
+  return ids
+}
+
 export async function listSignups(query: SignupListQuery = {}): Promise<SignupListResponse> {
   const db = getDb()
+  // 顺手清掉回收站里过期的记录：后台一打开名单就会走到这里，不需要额外定时任务。
+  purgeExpiredTrash(db)
   const pageSize = clampPageSize(query.pageSize)
   const sort = normalizeSort(query.sort)
+  const offset = tzOffsetOf(query.tz)
 
   // 按姓名排序需要 JS 参与，干脆整份取出后在内存里分页；其余排序交给 SQL。
   if (sort === 'name') {
     const all = selectAll(db, { ...query, sort })
     const pageCount = Math.max(1, Math.ceil(all.length / pageSize))
     const page = Math.min(Math.max(1, Math.trunc(Number(query.page)) || 1), pageCount)
+    const items = all.slice((page - 1) * pageSize, page * pageSize)
     return {
-      items: all.slice((page - 1) * pageSize, page * pageSize),
+      items,
       total: all.length,
       page,
       pageSize,
       pageCount,
-      stats: buildStats(db)
+      stats: buildStats(db, offset),
+      duplicateIds: [...duplicateIdSet(db, items)]
     }
   }
 
   const where = buildWhere(query)
-  const { n: total } = db
-    .prepare(`SELECT COUNT(*) AS n FROM signups ${where.sql}`)
-    .get(where.params) as { n: number }
+  const total = countBy(db, `SELECT COUNT(*) AS n FROM signups ${where.sql}`, where.params)
   const pageCount = Math.max(1, Math.ceil(total / pageSize))
   const page = Math.min(Math.max(1, Math.trunc(Number(query.page)) || 1), pageCount)
 
   const rows = db
     .prepare(`SELECT * FROM signups ${where.sql} ORDER BY ${SQL_ORDER[sort]} LIMIT @limit OFFSET @offset`)
     .all({ ...where.params, limit: pageSize, offset: (page - 1) * pageSize }) as DbRow[]
+  const items = rows.map(rowToRecord)
 
   return {
-    items: rows.map(rowToRecord),
+    items,
     total,
     page,
     pageSize,
     pageCount,
-    stats: buildStats(db)
+    stats: buildStats(db, offset),
+    duplicateIds: [...duplicateIdSet(db, items)]
   }
 }
 
@@ -534,10 +712,10 @@ export async function collectSignups(query: SignupListQuery = {}): Promise<Signu
 
 export async function updateSignup(id: string, patch: SignupPatch): Promise<SignupRecord> {
   const db = getDb()
-  const current = db.prepare('SELECT * FROM signups WHERE id = ?').get(id) as DbRow | undefined
-  if (!current) throw apiError(404, '找不到这条报名记录')
+  const row = db.prepare('SELECT * FROM signups WHERE id = ?').get(id) as DbRow | undefined
+  if (!row) throw apiError(404, '找不到这条报名记录')
 
-  const existing = rowToRecord(current)
+  const existing = rowToRecord(row)
   const has = (key: string) =>
     Object.prototype.hasOwnProperty.call(patch, key) && (patch as Record<string, unknown>)[key] !== undefined
 
@@ -569,9 +747,132 @@ export async function updateSignup(id: string, patch: SignupPatch): Promise<Sign
   return next
 }
 
+// ---------------------------------------------------------------------------
+// 批量操作
+// ---------------------------------------------------------------------------
+
+function cleanIds(value: unknown): string[] {
+  const list = Array.isArray(value) ? value : []
+  const ids = [...new Set(list.filter((item): item is string => typeof item === 'string' && item.trim().length > 0))]
+  if (!ids.length) throw apiError(400, '请先选择报名记录')
+  if (ids.length > MAX_BULK_IDS) throw apiError(400, `一次最多处理 ${MAX_BULK_IDS} 条，请分批操作`)
+  return ids
+}
+
+/** 批量改状态：只动状态和更新时间，不碰报名者填写的内容。 */
+export async function bulkUpdateStatus(value: unknown, status: unknown): Promise<number> {
+  if (!isSignupStatus(status)) throw apiError(400, '未知的报名状态')
+  const ids = cleanIds(value)
+  const placeholders = ids.map(() => '?').join(', ')
+  const result = getDb()
+    .prepare(`UPDATE signups SET status = ?, updated_at = ? WHERE id IN (${placeholders})`)
+    .run(status, new Date().toISOString(), ...ids)
+  return result.changes
+}
+
+/** 软删除：整条记录进回收站，30 天内可以恢复。 */
 export async function deleteSignup(id: string): Promise<void> {
-  const result = getDb().prepare('DELETE FROM signups WHERE id = ?').run(id)
-  if (result.changes === 0) throw apiError(404, '找不到这条报名记录')
+  const db = getDb()
+  const row = db.prepare('SELECT * FROM signups WHERE id = ?').get(id) as DbRow | undefined
+  if (!row) throw apiError(404, '找不到这条报名记录')
+  moveToTrash(db, [rowToRecord(row)])
+}
+
+export async function bulkDeleteSignup(value: unknown): Promise<number> {
+  const ids = cleanIds(value)
+  const db = getDb()
+  const placeholders = ids.map(() => '?').join(', ')
+  const rows = db.prepare(`SELECT * FROM signups WHERE id IN (${placeholders})`).all(...ids) as DbRow[]
+  if (!rows.length) throw apiError(404, '选中的报名记录都不存在了，请刷新后重试')
+  moveToTrash(db, rows.map(rowToRecord))
+  return rows.length
+}
+
+function moveToTrash(db: Db, records: SignupRecord[]) {
+  const stampTrash = db.prepare('INSERT OR REPLACE INTO signup_trash (id, payload, deleted_at) VALUES (?, ?, ?)')
+  const remove = db.prepare('DELETE FROM signups WHERE id = ?')
+  const deletedAt = new Date().toISOString()
+  db.transaction((items: SignupRecord[]) => {
+    for (const record of items) {
+      stampTrash.run(record.id, JSON.stringify(record), deletedAt)
+      remove.run(record.id)
+    }
+  })(records)
+}
+
+export async function listTrash(): Promise<SignupTrashEntry[]> {
+  const db = getDb()
+  purgeExpiredTrash(db)
+  const rows = db.prepare('SELECT id, payload, deleted_at FROM signup_trash ORDER BY deleted_at DESC').all() as {
+    id: string
+    payload: string
+    deleted_at: string
+  }[]
+  const entries: SignupTrashEntry[] = []
+  for (const row of rows) {
+    try {
+      const record = normalizeLegacyRecord(JSON.parse(row.payload))
+      if (record) entries.push({ record, deletedAt: row.deleted_at })
+    } catch {
+      // 单条坏了不影响整个回收站能打开。
+      console.error('[signupStore] 回收站记录无法解析，已跳过：', row.id)
+    }
+  }
+  return entries
+}
+
+/** 恢复：把记录原样塞回主表（编号被新记录占了就跳过，避免覆盖别人）。 */
+export async function restoreSignups(value: unknown): Promise<number> {
+  const ids = cleanIds(value)
+  const db = getDb()
+  const insert = db.prepare(INSERT_SQL)
+  const read = db.prepare('SELECT payload FROM signup_trash WHERE id = ?')
+  const remove = db.prepare('DELETE FROM signup_trash WHERE id = ?')
+
+  const restore = db.transaction((targets: string[]): number => {
+    let restored = 0
+    for (const id of targets) {
+      const row = read.get(id) as { payload: string } | undefined
+      if (!row) continue
+      let record: SignupRecord | null = null
+      try {
+        record = normalizeLegacyRecord(JSON.parse(row.payload))
+      } catch {
+        record = null
+      }
+      // 记录内容已经坏了就留在回收站里，让维护者自己判断。
+      if (!record) continue
+      const result = insert.run(recordToParams(record))
+      if (result.changes > 0) {
+        remove.run(id)
+        restored += 1
+      }
+    }
+    return restored
+  })
+
+  const restored = restore(ids)
+  if (!restored) throw apiError(409, '恢复失败：编号可能已经被新报名占用，请先处理和它冲突的记录')
+  return restored
+}
+
+/** 彻底删除：只对回收站里的记录生效。 */
+export async function purgeTrash(value: unknown): Promise<number> {
+  const db = getDb()
+  if (value === 'all') return db.prepare('DELETE FROM signup_trash').run().changes
+  const ids = cleanIds(value)
+  const placeholders = ids.map(() => '?').join(', ')
+  return db.prepare(`DELETE FROM signup_trash WHERE id IN (${placeholders})`).run(...ids).changes
+}
+
+function purgeExpiredTrash(db: Db) {
+  const cutoff = new Date(Date.now() - TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString()
+  try {
+    const result = db.prepare('DELETE FROM signup_trash WHERE deleted_at < ?').run(cutoff)
+    if (result.changes > 0) console.log(`[signupStore] 回收站清理了 ${result.changes} 条超过 ${TRASH_RETENTION_DAYS} 天的记录。`)
+  } catch (error) {
+    console.error('[signupStore] 回收站清理失败（不影响运行）：', error)
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -104,19 +104,109 @@
 .admin-main { padding: 26px 3.5vw 60px; }
 
 .admin-stats {
-  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin: 0 0 22px; padding: 0; list-style: none;
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin: 0 0 20px; padding: 0; list-style: none;
 }
 .admin-stats li {
-  display: flex; flex-direction: column; gap: 4px; padding: 16px 18px 14px; border: var(--line);
+  display: flex; flex-direction: column; gap: 2px; padding: 16px 18px 14px; border: var(--line);
   box-shadow: 6px 6px 0 var(--ink);
 }
 .admin-stats b { font: 400 clamp(30px, 3.4vw, 44px)/1 Nano, sans-serif; letter-spacing: -.05em; }
-.admin-stats span { font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .08em; }
+.admin-stats span { font-size: 14px; }
+.admin-stats i {
+  font: 400 10px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; font-style: normal; letter-spacing: .1em; opacity: .62;
+}
 .stat-yellow { background: var(--yellow); }
 .stat-red { background: var(--red); }
 .stat-blue { background: var(--blue); }
 .stat-green { background: var(--green); }
 .stat-ink { background: var(--ink); color: var(--paper); }
+
+/* ---------- 分布 / 趋势卡 ---------- */
+
+.admin-dashboard { transition: opacity .15s ease; }
+.admin-dashboard.is-loading { opacity: .6; }
+
+.admin-charts {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px;
+}
+.admin-chart { border: var(--line); background: #fffdf7; padding: 14px 16px 16px; }
+.admin-chart.is-trend { grid-column: 1 / -1; }
+.admin-chart header {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px;
+  padding-bottom: 9px; border-bottom: 2px solid var(--ink);
+}
+.admin-chart header p { margin: 0; font-size: 15px; }
+.admin-chart header i {
+  margin-left: 7px; font: 400 10px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace;
+  font-style: normal; letter-spacing: .1em; color: #6d655a;
+}
+.admin-chart header small {
+  font: 400 10px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .05em; color: #6d655a;
+}
+
+.chart-bars { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.chart-bars li { display: grid; grid-template-columns: 108px 1fr 34px; gap: 9px; align-items: center; }
+.chart-bars b {
+  font: 400 12px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; text-align: right; letter-spacing: .02em;
+}
+.chart-bar-label {
+  padding: 0; border: 0; background: none; color: var(--ink); font: inherit; font-size: 12px; text-align: left;
+  cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.chart-bar-label:hover { border-color: var(--red); color: var(--red); }
+.chart-bar-label.is-static { cursor: default; }
+.chart-bar-label.is-static:hover { border-color: transparent; color: var(--ink); }
+.chart-bar-track { height: 13px; border: 2px solid var(--ink); background: var(--paper); overflow: hidden; }
+.chart-bar-fill {
+  display: block; height: 100%; min-width: 0; background: var(--ink);
+  transition: width .3s ease;
+}
+.chart-bar-fill.lv-0 { background: var(--green); }
+.chart-bar-fill.lv-1 { background: var(--yellow); }
+.chart-bar-fill.lv-2 { background: var(--red); }
+.chart-bar-fill.lv-3 { background: var(--purple); }
+.chart-bar-fill.is-class { background: var(--blue); }
+.chart-empty {
+  display: block; padding: 14px 0; font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; color: #6d655a;
+}
+
+/* 趋势图用 div 而不是 ol/li，见 AdminStatsPanel.vue 里的注释；
+   main.css 的全局 ol li 会把这里改成三段网格。 */
+.chart-trend {
+  display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 6px; align-items: end;
+  height: 116px; margin: 0; padding: 0;
+}
+.trend-day { display: grid; grid-template-rows: 1fr 14px; gap: 5px; height: 100%; justify-items: center; min-width: 0; }
+.trend-bar {
+  position: relative; display: block; width: 100%; align-self: end; min-height: 4px;
+  background: var(--blue); border: 2px solid var(--ink); transition: height .3s ease;
+}
+.trend-bar b {
+  position: absolute; top: -17px; left: 50%; transform: translateX(-50%);
+  font: 400 10px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace;
+}
+.chart-trend i {
+  font: 400 9px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; font-style: normal;
+  letter-spacing: -.02em; color: #6d655a; white-space: nowrap;
+}
+
+/* ---------- 快捷筛选 ---------- */
+
+.admin-quick { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.admin-quick-chip {
+  display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border: 3px solid var(--ink);
+  background: var(--paper); color: var(--ink); font: inherit; font-size: 12px; cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.admin-quick-chip:hover { background: var(--ink); color: var(--paper); }
+.admin-quick-chip.is-active { background: var(--ink); color: var(--paper); box-shadow: 3px 3px 0 var(--red); }
+.admin-quick-chip.is-warn { background: var(--yellow); }
+.admin-quick-chip.is-warn.is-active { background: var(--red); color: var(--paper); }
+.admin-quick-chip b { font: 400 12px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; }
+.admin-quick-clear {
+  margin-left: auto; font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace;
+  letter-spacing: .04em; color: #4c463d;
+}
 
 .admin-toolbar {
   display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin-bottom: 18px;
@@ -135,6 +225,35 @@
   font-family: inherit; font-size: 13px; cursor: pointer;
 }
 .admin-select select:focus { outline: 3px solid var(--blue); outline-offset: 2px; }
+.admin-range { display: flex; align-items: center; gap: 6px; }
+.admin-range input {
+  padding: 8px 9px; border: 3px solid var(--ink); background: var(--paper); color: var(--ink);
+  font: 400 12px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; outline: none;
+}
+.admin-range input:focus { outline: 3px solid var(--blue); outline-offset: 2px; }
+.admin-range i { font-style: normal; font-size: 12px; color: #6d655a; }
+
+/* ---------- 批量操作条 ---------- */
+
+.admin-bulkbar {
+  position: sticky; top: 62px; z-index: 15; display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap;
+  margin-bottom: 14px; padding: 12px 16px; border: var(--line); background: var(--yellow);
+  box-shadow: 6px 6px 0 var(--ink);
+}
+.admin-bulkbar > span { font-size: 14px; }
+.admin-bulkbar b { font: 400 16px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; }
+.admin-button.is-danger { border-color: var(--red); color: var(--red); }
+.admin-button.is-danger:hover:not(:disabled) { background: var(--red); color: var(--paper); }
+.admin-button.is-active { background: var(--ink); color: var(--paper); }
+
+.admin-table .col-check { width: 40px; padding-right: 0; }
+.admin-table .col-check input { width: 17px; height: 17px; accent-color: var(--red); cursor: pointer; }
+.admin-row.is-selected { background: #e7f0ff; }
+.admin-row.is-selected:hover { background: #dbe8ff; }
+.admin-flag {
+  display: inline-block; margin-left: 6px; padding: 1px 5px; background: var(--red); color: var(--paper);
+  font: 400 9px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .06em;
+}
 
 .admin-banner { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; padding: 12px 14px; border: 3px solid var(--ink); font-size: 14px; }
 .admin-banner.is-err { background: var(--red); }
@@ -203,18 +322,78 @@
 
 .admin-detail-row td { padding: 0; background: #fffdf7; border-bottom: var(--line); }
 .admin-detail {
-  display: grid; grid-template-columns: 240px 1fr; gap: 22px; padding: 20px 18px 22px;
+  display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 22px; padding: 20px 18px 22px;
   border-top: 2px dashed var(--ink);
 }
+.admin-detail-side { display: grid; gap: 14px; align-content: start; }
 .admin-detail-list { display: grid; gap: 10px; margin: 0; align-content: start; }
 .admin-detail-list div { display: grid; gap: 2px; }
 .admin-detail-list dt { font: 400 10px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .08em; color: #6d655a; }
 .admin-detail-list dd { margin: 0; font-size: 14px; line-height: 1.5; }
+.admin-detail-list dd.is-mono { font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; }
+
+.admin-detail-status { display: grid; gap: 7px; }
+.admin-detail-status > span { font: 400 10px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .08em; color: #6d655a; }
+.admin-status-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.admin-pill {
+  padding: 5px 9px; border: 2px solid var(--ink); background: var(--paper); color: var(--ink);
+  font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; cursor: pointer; opacity: .5;
+}
+.admin-pill:hover:not(:disabled) { opacity: 1; }
+.admin-pill.is-active { opacity: 1; box-shadow: 3px 3px 0 var(--ink); }
+.admin-pill.tone-yellow.is-active { background: var(--yellow); }
+.admin-pill.tone-blue.is-active { background: var(--blue); color: var(--paper); }
+.admin-pill.tone-green.is-active { background: var(--green); }
+.admin-pill.tone-ink.is-active { background: var(--ink); color: var(--paper); }
+.admin-pill:disabled { cursor: not-allowed; }
+
+.admin-detail-warn {
+  margin: 0; padding: 9px 11px; border: 2px solid var(--red); background: #ffe7e1;
+  font: 400 11px/1.6 Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace;
+}
+
 .admin-detail-edit { display: grid; gap: 12px; }
-.admin-detail-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.admin-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.admin-detail-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.admin-dirty-flag {
+  font: 400 10px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .08em;
+  color: var(--red); border: 2px solid var(--red); padding: 2px 6px;
+}
+
+.admin-field select {
+  width: 100%; padding: 12px 14px; border: 3px solid var(--ink); background: #fffdf7; color: var(--ink);
+  font-family: inherit; font-size: 15px; outline: none; cursor: pointer;
+}
+.admin-field select:focus { box-shadow: 5px 5px 0 var(--blue); }
+
+.admin-chip-picker { display: flex; flex-wrap: wrap; gap: 7px; }
+.admin-chip {
+  padding: 6px 11px; border: 2px solid var(--ink); background: var(--paper); color: var(--ink);
+  font: inherit; font-size: 12px; cursor: pointer; opacity: .55; transition: opacity .12s ease, background .12s ease;
+}
+.admin-chip:hover { opacity: .85; }
+.admin-chip.is-active { opacity: 1; background: var(--yellow); box-shadow: 3px 3px 0 var(--ink); }
+
+/* ---------- 回收站 ---------- */
+
+.admin-trash { margin-top: 22px; }
+.admin-trash .admin-panel-head { background: var(--red); }
+.admin-trash-list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.admin-trash-list li {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  padding: 12px 18px; border-bottom: 2px solid var(--ink);
+}
+.admin-trash-list li:last-child { border-bottom: 0; }
+.admin-trash-info { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.admin-trash-info b { font-size: 15px; }
+.admin-trash-info span { font: 400 11px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; }
+.admin-trash-info i {
+  font: 400 10px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; font-style: normal; color: #6d655a;
+}
+.admin-trash-actions { display: flex; gap: 6px; }
 
 .admin-pager {
-  display: flex; align-items: center; justify-content: center; gap: 16px; padding: 14px;
+  display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; padding: 14px;
   border-top: var(--line); background: var(--paper);
 }
 .admin-pager span { font: 400 12px Consolas,"Courier New",Cubic,Lemi,"Segoe UI Symbol",monospace; letter-spacing: .08em; }
@@ -236,6 +415,8 @@
 
 @media (max-width: 1100px) {
   .admin-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .admin-charts { grid-template-columns: 1fr; }
+  .admin-chip { font-size: 11px; }
 }
 
 @media (max-width: 860px) {
@@ -243,9 +424,22 @@
   .admin-main { padding: 18px 14px 44px; }
   .admin-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .admin-stats li { padding: 12px 14px; }
+  .admin-chart { padding: 12px; }
+  .admin-chart header { flex-wrap: wrap; gap: 4px 10px; }
+  .chart-bars li { grid-template-columns: 84px 1fr 30px; gap: 7px; }
+  .chart-bar-label { font-size: 11px; }
+  .chart-trend { height: 92px; gap: 3px; }
+  .chart-trend i { font-size: 8px; }
+  .trend-bar b { display: none; }
+  .admin-quick { gap: 6px; }
+  .admin-quick-chip { padding: 6px 10px; font-size: 11px; }
+  .admin-quick-clear { width: 100%; margin-left: 0; }
   .admin-toolbar { padding: 12px; }
   .admin-search { flex-basis: 100%; }
   .admin-select { flex: 1 1 42%; }
+  .admin-range { flex-wrap: nowrap; }
+  .admin-range input { min-width: 0; flex: 1 1 0; }
+  .admin-bulkbar { position: static; padding: 10px 12px; gap: 8px; }
   .admin-table thead { display: none; }
   .admin-table, .admin-table tbody, .admin-table tr, .admin-table td { display: block; width: 100%; }
   .admin-row {
@@ -259,13 +453,17 @@
   }
   .admin-row .admin-level,
   .admin-row .col-dirs span,
-  .admin-row .col-contact { justify-self: start; }
+  .admin-row .col-contact,
+  .admin-row .col-check input { justify-self: start; }
+  .admin-row .col-check { padding-bottom: 0; }
   .admin-row .col-actions { display: flex; gap: 8px; padding-top: 8px; }
   .admin-row .col-actions::before { display: none; }
   .admin-row { margin-bottom: 18px; }
   .admin-row.is-open { margin-bottom: 0; }
   .admin-detail-row td { padding: 0; }
   .admin-detail { grid-template-columns: 1fr; gap: 16px; padding: 16px 14px; }
+  .admin-detail-grid { grid-template-columns: 1fr; }
+  .admin-trash-list li { padding: 12px 14px; }
   .admin-foot { font-size: 10px; }
   .admin-toast { right: 14px; left: 14px; bottom: 14px; }
 }

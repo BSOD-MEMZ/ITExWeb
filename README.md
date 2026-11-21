@@ -53,7 +53,7 @@ npm run preview
 ```text
 ITEx/
 ├─ assets/css/          # 全局视觉样式与响应式规则（admin.css 是报名后台）
-├─ components/          # 首屏、导航、项目卡片、页尾等组件
+├─ components/          # 首屏、导航、项目卡片、页尾等组件（AdminStatsPanel / AdminSignupEditor 是后台的统计与编辑块）
 ├─ data/site.ts         # 社团方向与理念等内容数据
 ├─ data/apply.ts        # 报名表的能力等级与活动类别
 ├─ types/signup.ts      # 报名数据结构与状态枚举（页面、接口、后台共用）
@@ -61,7 +61,7 @@ ITEx/
 ├─ pages/signup.vue     # 入社报名表（独立页面，首页只在页脚留入口）
 ├─ pages/admin.vue      # 报名名单管理后台（不加入口，只能直接访问 /admin）
 ├─ server/api/          # 报名提交接口与 /api/admin/* 管理接口
-├─ server/utils/        # signupStore（报名持久化）、adminSession（后台会话）
+├─ server/utils/        # signupStore（报名持久化）、adminSession（后台会话）、apiError（统一错误）
 ├─ utils/signupOffline.ts # 提交失败时的本机待补交队列
 ├─ public/fonts/        # Cubic（正文）、Nano、Lemi 字体文件
 ├─ public/images/       # 水原雫等公开站点素材
@@ -74,7 +74,7 @@ ITEx/
 - 调整社团实践方向：编辑 `data/site.ts` 中的 `projects`。
 - 调整首页文案、奖项和联动信息：编辑 `pages/index.vue`。
 - 调整报名表的能力等级、活动类别：编辑 `data/apply.ts`（方向 id 同时被 `types/signup.ts` 的白名单校验使用）。
-- 调整报名后台的列表与统计：编辑 `pages/admin.vue` 与 `assets/css/admin.css`。
+- 调整报名后台的列表与统计：编辑 `pages/admin.vue`、`components/AdminStatsPanel.vue`、`components/AdminSignupEditor.vue` 与 `assets/css/admin.css`。
 - 调整布局与视觉：优先编辑 `assets/css/skills.css`；报名页样式在 `assets/css/signup.css`；基础设计 token 位于 `assets/css/main.css`。
 - 水原雫（Shizuku Mizuhara）立绘署名：由 2511 ScreenRain 绘制。
 
@@ -91,7 +91,8 @@ ITEx/
 - 用 [better-sqlite3](https://github.com/WiseLibs/better-sqlite3)（原生模块，同步 API）。单文件数据库、不需要额外的常驻服务；开了 WAL + `busy_timeout=5000`，多进程部署也不会丢写。
 - 表 `signups` 一条记录一行，`directions` 存成 `code,web` 这样的逗号串，筛选用 `,id,` 做边界匹配。
 - 每条记录包含表单字段、编号、`status`（`pending` / `contacted` / `accepted` / `archived`）、`adminNote`（仅后台可见）、`createdAt`、`updatedAt`。
-- **编号规则**：形如 `ITEX-2026-0021`。取当年已用最大值 +1，不会因为删记录而撞号；`0000–0020` 是预留段（留给社内手工录入），自动编号从 **0021** 起，每年重新计数。
+- **编号规则**：形如 `ITEX-2026-0021`。`0000–0020` 是预留段（留给社内手工录入），自动编号从 **0021** 起，每年重新计数。分配时取「已用最大值 +1」和「当年计数器 +1」的较大者：计数器（`signup_counters` 表）只增不减，所以删掉最大号之后也不会把号码分给别人——否则已经发出去的凭证会和后台新记录撞号，回收站里的同号记录也就永远恢复不了。
+- **回收站**：后台删除不是真删，整条记录以 JSON 存进 `signup_trash`，30 天内可以恢复；超过 30 天的会在下次打开列表时自动清理。恢复时编号被新记录占用会返回 409（正常流程下不会发生，靠的就是上面那个只增不减的计数器）。
 - **旧数据迁移**：首次启动时如果发现同目录下有旧的 `signups.json`，会自动导入（`INSERT OR IGNORE`，重复执行安全），导入成功后把旧文件改名成 `signups.json.imported-<时间戳>` 存档。
 - `better-sqlite3` 是原生模块：`npm install` 时需要允许它跑安装脚本（`package.json` 的 `allowScripts` 已经放行）。换机器 / 换 Node 大版本后如果报 `Could not locate the bindings file`，执行 `npm rebuild better-sqlite3`。
 
@@ -131,11 +132,26 @@ NUXT_ADMIN_PASSWORD=... NUXT_ADMIN_SESSION_SECRET=... node .output/server/index.
 
 ### 能做什么
 
-- 名单分页，关键字搜索（姓名 / 班级 / 联系方式 / 编号 / 备注），按状态、方向、能力筛选，四种排序。
-- 顶部统计：全部、待处理、已联系、已入社、近 7 天（统计基于全部记录，不受筛选影响）。
-- 点开任意一行看详情：改状态、改联系方式与其它信息、写内部备注（仅后台可见，深色标签 `ADMIN ONLY`）。
-- 导出 CSV（带 BOM，Excel 直接打开中文不乱码；导出的是当前筛选结果，含状态与内部备注，`= + - @` 开头的内容会被转义防公式注入）。
-- 删除报名：需要点两次确认，不可恢复，建议定期导出备份。
+**看整体进度**
+- 五张总量卡：全部、待处理、已联系、已入社、近 7 天（始终基于全部记录，不受筛选影响）。
+- 四张分布卡：方向分布（一人可选多个方向，可点击直接筛选）、能力自评（点击按等级筛选）、近 14 天提交趋势、班级分布。悬停柱子能看到具体数字。
+
+**找到想找的人**
+- 关键字搜索：姓名 / 班级 / 联系方式 / 编号 / 备注 / 自定义方向。
+- 下拉筛选：状态、方向、能力、班级（带各班人数）、提交日期区间。
+- 快捷筛选：待处理 / 已入社 / 今天 / 近 7 天 / 疑似重复。
+- 五种排序：最新提交、最早提交、最近改动、能力高→低、按姓名（拼音序）。
+- 筛选条件会写回 URL，刷新页面、把链接发给自己都能复原同一视图。
+
+**改数据**
+- 展开「详情」可以改**全部字段**：姓名、班级、能力自评、方向（多选）、自定义说明、联系方式、其它信息、内部备注。有「未保存」标记，可一键撤销。
+- 状态流转有四个色标按钮（待处理 / 已联系 / 已入社 / 已归档），行内也有下拉框可以快速改。
+- 批量操作：勾选多条后统一改状态或移入回收站（一次最多 500 条）。
+- 同名同班的记录会标红「重复?」，配合「疑似重复」快捷筛选能快速发现重复提交。
+
+**导出与删除**
+- 导出 CSV：带 BOM，Excel 直接打开中文不乱码；导出当前筛选结果，含状态与内部备注，`= + - @` 开头的内容会转义防公式注入。
+- 删除先进回收站（30 天），可以恢复；也可在回收站里彻底删除。单条删除需要点两次确认。
 
 ### 接口
 
@@ -145,10 +161,14 @@ NUXT_ADMIN_PASSWORD=... NUXT_ADMIN_SESSION_SECRET=... node .output/server/index.
 | `GET /api/admin/session` | 后台是否启用 / 当前是否已登录 |
 | `POST /api/admin/login` | 登录，body `{ password }` |
 | `POST /api/admin/logout` | 退出登录（清 cookie） |
-| `GET /api/admin/signups` | 名单，支持 `q` / `status` / `direction` / `level` / `sort` / `page` / `pageSize` |
-| `PATCH /api/admin/signups/:id` | 改状态、内部备注或表单字段 |
-| `DELETE /api/admin/signups/:id` | 删除一条报名 |
+| `GET /api/admin/signups` | 名单，支持 `q` / `status` / `direction` / `level` / `className` / `from` / `to` / `duplicate` / `sort` / `page` / `pageSize` / `tz` |
+| `PATCH /api/admin/signups/:id` | 改状态、内部备注或任意表单字段 |
+| `DELETE /api/admin/signups/:id` | 删除一条（进回收站） |
+| `POST /api/admin/signups/bulk` | 批量操作，body `{ action, ids, status? }`，`action` 为 `status` / `delete` / `restore` / `purge` |
+| `GET /api/admin/signups/trash` | 回收站列表 |
 | `GET /api/admin/signups/export` | 导出 CSV（接受同样的筛选参数） |
+
+`from` / `to` 是本地日期（`YYYY-MM-DD`，含当天），`tz` 是客户端时区偏移分钟数（东八区为 `480`），服务端据此把 UTC 时间戳折算成使用者眼里的日历日；不传按东八区处理。
 
 ## 字体子集化
 
