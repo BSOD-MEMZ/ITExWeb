@@ -1,5 +1,7 @@
-import { promises as fs } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, renameSync } from 'node:fs'
 import { join } from 'node:path'
+import Database from 'better-sqlite3'
+import type { Database as Db } from 'better-sqlite3'
 import { directions, levels } from '../../data/apply'
 import {
   SIGNUP_DIRECTION_IDS,
@@ -20,34 +22,31 @@ import {
 /**
  * 报名记录的持久层（服务端唯一读写入口）。
  *
- * 为什么还是 JSON 文件：社团一年的报名量在几十到几百条，单文件足够；
- * 换成数据库只需替换这一层，接口和页面都不用动。
+ * 存储：SQLite（better-sqlite3，同步 API）。选它的理由：
+ * - 单文件数据库，不需要额外的常驻服务，2GB 内存的机器上不占资源；
+ * - 有事务和约束，多进程 / 多实例部署也不会丢写（WAL + busy_timeout），
+ *   这正好补上了原来 JSON 方案「只能在单进程里靠队列串行」的短板；
+ * - 服务器上已有 sqlite3 3.46 与 gcc/make/python3，原生模块装得上。
  *
- * 相比最初的实现，这里补上的几件事：
- * 1. 写入是「临时文件 + rename」的原子替换，进程被 kill 也不会留下写了一半的名单；
- * 2. 所有「读 → 改 → 写」都过一个进程内队列，并发提交不会互相覆盖；
- * 3. 文件带 version / updatedAt，旧版（纯数组）读取时补默认字段，下次写入自动升级；
- * 4. 文件损坏时先备份为 signups.corrupt-*.json 再重建，不静默丢数据；
- * 5. 一条记录除了表单字段，还带 status / adminNote / updatedAt，供管理后台使用。
+ * 首次启动时会自动把旧的 .data/signups.json 导入（导入后改名存档，不会重复导入）。
  *
- * 已知边界：队列只在单进程内有效。如果以后用 PM2 cluster 或多实例部署，
- * 需要把这层换成数据库（或加文件锁），否则仍可能丢写。
+ * 数据库文件：<ITEX_DATA_DIR>/signups.db，默认项目根目录下的 .data/（已在 .gitignore 中忽略）。
  */
 
-const FILE_VERSION = 2
 const ID_PREFIX = 'ITEX'
+/**
+ * 编号 0000–0020 是预留段（留给社内手工录入 / 特殊凭证），自动编号必须从 0021 起。
+ * 每年重新计数，所以 2027 年的第一份自动报名也是 ITEX-2027-0021。
+ */
+const RESERVED_SEQUENCE_MAX = 20
+const FIRST_AUTO_SEQUENCE = RESERVED_SEQUENCE_MAX + 1
 const DEFAULT_PAGE_SIZE = 20
 const MAX_PAGE_SIZE = 200
+const DB_FILE_NAME = 'signups.db'
+const LEGACY_FILE_NAME = 'signups.json'
 
-/** 允许用 ITEX_DATA_DIR 指定数据目录，默认项目根目录下的 .data（已在 .gitignore 中忽略）。 */
 const DATA_DIR = (process.env.ITEX_DATA_DIR || '').trim() || join(process.cwd(), '.data')
-const DATA_FILE = join(DATA_DIR, 'signups.json')
-
-type StoreFile = {
-  version?: number
-  updatedAt?: string
-  records?: unknown
-}
+const DB_FILE = join(DATA_DIR, DB_FILE_NAME)
 
 export type SignupPatch = Partial<SignupInput> & {
   status?: SignupStatus
@@ -55,15 +54,71 @@ export type SignupPatch = Partial<SignupInput> & {
 }
 
 // ---------------------------------------------------------------------------
-// 进程内串行队列
+// 连接与建表
 // ---------------------------------------------------------------------------
 
-let queue: Promise<unknown> = Promise.resolve()
+const SCHEMA = `
+CREATE TABLE IF NOT EXISTS signups (
+  id          TEXT PRIMARY KEY,
+  name        TEXT NOT NULL,
+  class_name  TEXT NOT NULL,
+  level       INTEGER NOT NULL DEFAULT 0,
+  -- 方向 id 以逗号连接（如 'code,web'），配 ',<id>,' LIKE 做精确筛选
+  directions  TEXT NOT NULL DEFAULT '',
+  custom      TEXT NOT NULL DEFAULT '',
+  contact     TEXT NOT NULL,
+  note        TEXT NOT NULL DEFAULT '',
+  status      TEXT NOT NULL DEFAULT 'pending',
+  admin_note  TEXT NOT NULL DEFAULT '',
+  created_at  TEXT NOT NULL,
+  updated_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_signups_created_at ON signups(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_signups_status ON signups(status);
+CREATE INDEX IF NOT EXISTS idx_signups_level ON signups(level);
+`
 
-function withLock<T>(task: () => Promise<T>): Promise<T> {
-  const run = queue.then(task, task)
-  queue = run.catch(() => undefined)
-  return run
+type DbRow = {
+  id: string
+  name: string
+  class_name: string
+  level: number
+  directions: string
+  custom: string
+  contact: string
+  note: string
+  status: string
+  admin_note: string
+  created_at: string
+  updated_at: string
+}
+
+/** 放进 globalThis，避免 dev 热重载 / 多个 Nitro worker 反复打开同一个文件。 */
+const CACHE_KEY = Symbol.for('itex.signupDb')
+
+type DbCache = { db: Db }
+
+function openDatabase(): Db {
+  const cached = (globalThis as unknown as Record<symbol, DbCache | undefined>)[CACHE_KEY]
+  if (cached) return cached.db
+
+  mkdirSync(DATA_DIR, { recursive: true })
+  const db = new Database(DB_FILE)
+  // WAL：读写不互相阻塞；busy_timeout 让并发写入自动排队而不是直接报 SQLITE_BUSY。
+  db.pragma('journal_mode = WAL')
+  db.pragma('busy_timeout = 5000')
+  db.pragma('synchronous = NORMAL')
+  db.pragma('foreign_keys = ON')
+  db.exec(SCHEMA)
+
+  ;(globalThis as unknown as Record<symbol, DbCache>)[CACHE_KEY] = { db }
+  return db
+}
+
+function getDb(): Db {
+  const db = openDatabase()
+  ensureLegacyImported(db)
+  return db
 }
 
 // ---------------------------------------------------------------------------
@@ -129,10 +184,123 @@ export function normalizeSignupInput(body: unknown, base?: SignupRecord): Signup
 }
 
 // ---------------------------------------------------------------------------
-// 文件读写
+// 行 <-> 对象
 // ---------------------------------------------------------------------------
 
-function normalizeStoredRecord(value: unknown): SignupRecord | null {
+function rowToRecord(row: DbRow): SignupRecord {
+  const picked = String(row.directions ?? '')
+    .split(',')
+    .filter((id): id is SignupDirectionId => isSignupDirectionId(id))
+  return {
+    id: row.id,
+    name: row.name,
+    className: row.class_name,
+    level: pickLevel(row.level),
+    directions: picked,
+    custom: row.custom ?? '',
+    contact: row.contact,
+    note: row.note ?? '',
+    // 库里理论上不会有非法值，兜底成 pending，避免后台整页崩掉。
+    status: isSignupStatus(row.status) ? row.status : 'pending',
+    adminNote: row.admin_note ?? '',
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  }
+}
+
+function recordToParams(record: SignupRecord) {
+  return {
+    id: record.id,
+    name: record.name,
+    class_name: record.className,
+    level: record.level,
+    directions: record.directions.join(','),
+    custom: record.custom,
+    contact: record.contact,
+    note: record.note,
+    status: record.status,
+    admin_note: record.adminNote,
+    created_at: record.createdAt,
+    updated_at: record.updatedAt
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 旧 JSON 数据一次性导入
+// ---------------------------------------------------------------------------
+
+let legacyChecked = false
+
+function ensureLegacyImported(db: Db) {
+  if (legacyChecked) return
+  legacyChecked = true
+
+  const legacyFile = join(DATA_DIR, LEGACY_FILE_NAME)
+  if (!existsSync(legacyFile)) return
+
+  const count = (db.prepare('SELECT COUNT(*) AS n FROM signups').get() as { n: number }).n
+  if (count > 0) {
+    // 库里已经有数据，说明迁移早就做完了，只是旧文件没来得及改名。
+    archiveLegacyFile(legacyFile, 'stale')
+    return
+  }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(readFileSync(legacyFile, 'utf8'))
+  } catch (error) {
+    console.error('[signupStore] 旧 signups.json 无法解析，保持原样未导入：', error)
+    return
+  }
+
+  const list = Array.isArray(parsed)
+    ? parsed
+    : Array.isArray((parsed as { records?: unknown })?.records)
+      ? ((parsed as { records: unknown[] }).records as unknown[])
+      : null
+
+  if (!list) {
+    console.error('[signupStore] 旧 signups.json 结构异常，保持原样未导入。')
+    return
+  }
+
+  const records = list
+    .map((item) => normalizeLegacyRecord(item))
+    .filter((record): record is SignupRecord => record !== null)
+
+  if (!records.length) {
+    console.warn('[signupStore] 旧 signups.json 里没有可用记录。')
+    return
+  }
+
+  const insert = db.prepare(
+    `INSERT OR IGNORE INTO signups
+       (id, name, class_name, level, directions, custom, contact, note, status, admin_note, created_at, updated_at)
+     VALUES
+       (@id, @name, @class_name, @level, @directions, @custom, @contact, @note, @status, @admin_note, @created_at, @updated_at)`
+  )
+
+  const importAll = db.transaction((items: SignupRecord[]) => {
+    for (const record of items) insert.run(recordToParams(record))
+  })
+  importAll(records)
+
+  console.log(`[signupStore] 已从 signups.json 导入 ${records.length} 条报名记录。`)
+  archiveLegacyFile(legacyFile, 'imported')
+}
+
+function archiveLegacyFile(file: string, reason: string) {
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+  const target = join(DATA_DIR, `${LEGACY_FILE_NAME}.${reason}-${stamp}`)
+  try {
+    renameSync(file, target)
+    console.log(`[signupStore] 旧数据文件已存档为 ${target}`)
+  } catch (error) {
+    console.error('[signupStore] 存档旧数据文件失败（不影响运行）：', error)
+  }
+}
+
+function normalizeLegacyRecord(value: unknown): SignupRecord | null {
   if (!value || typeof value !== 'object') return null
   const raw = value as Record<string, unknown>
   const id = text(raw.id, 40)
@@ -148,7 +316,6 @@ function normalizeStoredRecord(value: unknown): SignupRecord | null {
     custom: text(raw.custom, 60),
     contact: text(raw.contact, 64),
     note: multiline(raw.note, 500),
-    // 旧记录的 status / adminNote / updatedAt 在这里补齐，不用手动迁移。
     status: isSignupStatus(raw.status) ? raw.status : 'pending',
     adminNote: multiline(raw.adminNote, 500),
     createdAt,
@@ -156,134 +323,76 @@ function normalizeStoredRecord(value: unknown): SignupRecord | null {
   }
 }
 
-async function quarantineCorruptFile() {
-  const stamp = new Date().toISOString().replace(/[:.]/g, '-')
-  try {
-    await fs.rename(DATA_FILE, join(DATA_DIR, `signups.corrupt-${stamp}.json`))
-  } catch (error) {
-    console.error('[signupStore] 备份损坏的报名数据文件失败：', error)
-  }
-}
-
-async function readStore(): Promise<SignupRecord[]> {
-  let raw: string
-  try {
-    raw = await fs.readFile(DATA_FILE, 'utf8')
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') return []
-    throw error
-  }
-  if (!raw.trim()) return []
-
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(raw)
-  } catch (error) {
-    await quarantineCorruptFile()
-    console.error('[signupStore] signups.json 不是合法 JSON，已备份并重建：', error)
-    return []
-  }
-
-  const list = Array.isArray(parsed)
-    ? parsed
-    : Array.isArray((parsed as StoreFile)?.records)
-      ? ((parsed as StoreFile).records as unknown[])
-      : null
-
-  if (!list) {
-    await quarantineCorruptFile()
-    console.error('[signupStore] signups.json 结构异常（既不是数组也没有 records），已备份并重建。')
-    return []
-  }
-
-  return list.map(normalizeStoredRecord).filter((record): record is SignupRecord => record !== null)
-}
-
-/** Windows 上 rename 可能撞上杀毒软件或另一个读句柄，短暂重试几次。 */
-async function replaceFile(tempFile: string) {
-  for (let attempt = 0; ; attempt += 1) {
-    try {
-      await fs.rename(tempFile, DATA_FILE)
-      return
-    } catch (error) {
-      const code = (error as NodeJS.ErrnoException)?.code
-      const retriable = code === 'EPERM' || code === 'EBUSY' || code === 'EACCES'
-      if (!retriable || attempt >= 4) throw error
-      await new Promise((resolve) => setTimeout(resolve, 40 * (attempt + 1)))
-    }
-  }
-}
-
-async function writeStore(records: SignupRecord[]) {
-  await fs.mkdir(DATA_DIR, { recursive: true })
-  const payload: StoreFile & { records: SignupRecord[] } = {
-    version: FILE_VERSION,
-    updatedAt: new Date().toISOString(),
-    records
-  }
-  const tempFile = `${DATA_FILE}.${process.pid}-${Date.now()}.tmp`
-  try {
-    await fs.writeFile(tempFile, `${JSON.stringify(payload, null, 2)}\n`, 'utf8')
-    await replaceFile(tempFile)
-  } catch (error) {
-    await fs.rm(tempFile, { force: true }).catch(() => undefined)
-    throw error
-  }
-}
-
 // ---------------------------------------------------------------------------
-// 查询
+// 查询条件
 // ---------------------------------------------------------------------------
 
-function normalizeSort(sort: unknown): SignupSort {
-  return sort === 'oldest' || sort === 'name' || sort === 'level' ? sort : 'newest'
-}
+type Where = { sql: string; params: Record<string, unknown> }
 
-function sortRecords(records: SignupRecord[], sort: SignupSort): SignupRecord[] {
-  const list = [...records]
-  if (sort === 'oldest') return list.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-  if (sort === 'name') return list.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'))
-  if (sort === 'level') return list.sort((a, b) => b.level - a.level || b.createdAt.localeCompare(a.createdAt))
-  return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-}
+function buildWhere(query: SignupListQuery): Where {
+  const clauses: string[] = []
+  const params: Record<string, unknown> = {}
 
-function filterRecords(records: SignupRecord[], query: SignupListQuery): SignupRecord[] {
-  const keyword = (query.q ?? '').trim().toLowerCase()
   const status = query.status && query.status !== 'all' ? query.status : ''
-  const direction = query.direction && query.direction !== 'all' ? query.direction : ''
-  const level = typeof query.level === 'number' ? query.level : null
-
-  return records.filter((record) => {
-    if (status && record.status !== status) return false
-    if (direction && !record.directions.includes(direction)) return false
-    if (level !== null && record.level !== level) return false
-    if (!keyword) return true
-    return [record.id, record.name, record.className, record.contact, record.note, record.custom, record.adminNote]
-      .join('\n')
-      .toLowerCase()
-      .includes(keyword)
-  })
-}
-
-function buildStats(records: SignupRecord[]): SignupStats {
-  const since = Date.now() - 7 * 24 * 60 * 60 * 1000
-  let pending = 0
-  let contacted = 0
-  let accepted = 0
-  let archived = 0
-  let last7Days = 0
-
-  for (const record of records) {
-    if (record.status === 'pending') pending += 1
-    else if (record.status === 'contacted') contacted += 1
-    else if (record.status === 'accepted') accepted += 1
-    else archived += 1
-
-    const created = Date.parse(record.createdAt)
-    if (Number.isFinite(created) && created >= since) last7Days += 1
+  if (status) {
+    clauses.push('status = @status')
+    params.status = status
   }
 
-  return { total: records.length, pending, contacted, accepted, archived, last7Days }
+  const direction = query.direction && query.direction !== 'all' ? query.direction : ''
+  if (direction) {
+    // 用 ',code,web,' 这种带边界的形式做精确匹配，避免 'code' 命中 'codex'。
+    clauses.push("(',' || directions || ',') LIKE @direction")
+    params.direction = `%,${direction},%`
+  }
+
+  if (typeof query.level === 'number') {
+    clauses.push('level = @level')
+    params.level = query.level
+  }
+
+  const keyword = (query.q ?? '').trim()
+  if (keyword) {
+    clauses.push(
+      `(id LIKE @kw OR name LIKE @kw OR class_name LIKE @kw OR contact LIKE @kw
+        OR note LIKE @kw OR custom LIKE @kw OR admin_note LIKE @kw)`
+    )
+    params.kw = `%${keyword}%`
+  }
+
+  return { sql: clauses.length ? `WHERE ${clauses.join(' AND ')}` : '', params }
+}
+
+/** SQL 能直接表达的顺序；name 需要拼音排序，交给 JS。 */
+const SQL_ORDER: Record<Exclude<SignupSort, 'name'>, string> = {
+  newest: 'created_at DESC',
+  oldest: 'created_at ASC',
+  level: 'level DESC, created_at DESC'
+}
+
+function buildStats(db: Db): SignupStats {
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+  const row = db
+    .prepare(
+      `SELECT
+         COUNT(*) AS total,
+         SUM(CASE WHEN status = 'pending'   THEN 1 ELSE 0 END) AS pending,
+         SUM(CASE WHEN status = 'contacted' THEN 1 ELSE 0 END) AS contacted,
+         SUM(CASE WHEN status = 'accepted'  THEN 1 ELSE 0 END) AS accepted,
+         SUM(CASE WHEN status = 'archived'  THEN 1 ELSE 0 END) AS archived,
+         SUM(CASE WHEN created_at >= @since THEN 1 ELSE 0 END) AS last7Days
+       FROM signups`
+    )
+    .get({ since }) as Record<string, number | null>
+
+  return {
+    total: Number(row.total ?? 0),
+    pending: Number(row.pending ?? 0),
+    contacted: Number(row.contacted ?? 0),
+    accepted: Number(row.accepted ?? 0),
+    archived: Number(row.archived ?? 0),
+    last7Days: Number(row.last7Days ?? 0)
+  }
 }
 
 function clampPageSize(value: unknown): number {
@@ -292,12 +401,22 @@ function clampPageSize(value: unknown): number {
   return Math.min(Math.max(size, 5), MAX_PAGE_SIZE)
 }
 
-async function snapshot(query: SignupListQuery) {
-  const records = await readStore()
-  return {
-    all: records,
-    filtered: sortRecords(filterRecords(records, query), normalizeSort(query.sort))
-  }
+function normalizeSort(sort: unknown): SignupSort {
+  return sort === 'oldest' || sort === 'name' || sort === 'level' ? sort : 'newest'
+}
+
+/** 取某个筛选条件下的全部记录（导出 / 按姓名排序时用，数据量在几百条量级足够）。 */
+function selectAll(db: Db, query: SignupListQuery): SignupRecord[] {
+  const where = buildWhere(query)
+  const sort = normalizeSort(query.sort)
+  const order = sort === 'name' ? 'created_at DESC' : SQL_ORDER[sort]
+  const rows = db
+    .prepare(`SELECT * FROM signups ${where.sql} ORDER BY ${order}`)
+    .all(where.params) as DbRow[]
+  const records = rows.map(rowToRecord)
+  // localeCompare('zh-Hans-CN') 才有拼音顺序，SQLite 的默认排序对中文没有意义。
+  if (sort === 'name') records.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'))
+  return records
 }
 
 // ---------------------------------------------------------------------------
@@ -321,95 +440,138 @@ export function parseSignupListQuery(raw: Record<string, unknown>): SignupListQu
 }
 
 export async function createSignup(input: SignupInput): Promise<SignupRecord> {
-  return withLock(async () => {
-    const records = await readStore()
+  const db = getDb()
+  const insert = db.prepare(
+    `INSERT INTO signups
+       (id, name, class_name, level, directions, custom, contact, note, status, admin_note, created_at, updated_at)
+     VALUES
+       (@id, @name, @class_name, @level, @directions, @custom, @contact, @note, @status, @admin_note, @created_at, @updated_at)`
+  )
+  const maxSequence = db.prepare(
+    `SELECT COALESCE(MAX(CAST(SUBSTR(id, @offset) AS INTEGER)), 0) AS m
+       FROM signups WHERE id LIKE @prefix || '%'`
+  )
+
+  // 编号：取已用最大值 +1，而不是按条数 +1——删记录后条数会倒退，
+  // 用条数会让新编号和已经发出去的凭证撞号。
+  // 0000–0020 为预留段，自动编号从 0021 起（已存在的预留记录也要算进最大值，避免撞号）。
+  const allocate = db.transaction((): SignupRecord => {
     const now = new Date()
-
-    // 取已用编号最大值 +1，而不是按条数 +1：删除记录后条数会倒退，
-    // 用条数会让新编号和已经发出去的凭证撞号。
     const prefix = `${ID_PREFIX}-${now.getFullYear()}-`
-    const maxSequence = records.reduce((max, record) => {
-      if (!record.id.startsWith(prefix)) return max
-      const sequence = Number.parseInt(record.id.slice(prefix.length), 10)
-      return Number.isInteger(sequence) && sequence > max ? sequence : max
-    }, 0)
-
+    const { m } = maxSequence.get({ offset: prefix.length + 1, prefix }) as { m: number }
+    const nextSequence = Math.max(Number(m) + 1, FIRST_AUTO_SEQUENCE)
     const record: SignupRecord = {
       ...input,
-      id: `${prefix}${String(maxSequence + 1).padStart(4, '0')}`,
+      id: `${prefix}${String(nextSequence).padStart(4, '0')}`,
       status: 'pending',
       adminNote: '',
       createdAt: now.toISOString(),
       updatedAt: now.toISOString()
     }
-
-    records.push(record)
-    await writeStore(records)
+    insert.run(recordToParams(record))
     return record
   })
+
+  // 并发下两个请求可能算出同一个编号，PK 冲突时重试即可（事务已回滚，不会留下半条数据）。
+  let lastError: unknown
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      return allocate()
+    } catch (error) {
+      const code = (error as { code?: string })?.code
+      if (code !== 'SQLITE_CONSTRAINT_PRIMARYKEY' && code !== 'SQLITE_CONSTRAINT_UNIQUE') throw error
+      lastError = error
+    }
+  }
+  throw lastError
 }
 
 export async function listSignups(query: SignupListQuery = {}): Promise<SignupListResponse> {
-  const { all, filtered } = await snapshot(query)
+  const db = getDb()
   const pageSize = clampPageSize(query.pageSize)
-  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const sort = normalizeSort(query.sort)
+
+  // 按姓名排序需要 JS 参与，干脆整份取出后在内存里分页；其余排序交给 SQL。
+  if (sort === 'name') {
+    const all = selectAll(db, { ...query, sort })
+    const pageCount = Math.max(1, Math.ceil(all.length / pageSize))
+    const page = Math.min(Math.max(1, Math.trunc(Number(query.page)) || 1), pageCount)
+    return {
+      items: all.slice((page - 1) * pageSize, page * pageSize),
+      total: all.length,
+      page,
+      pageSize,
+      pageCount,
+      stats: buildStats(db)
+    }
+  }
+
+  const where = buildWhere(query)
+  const { n: total } = db
+    .prepare(`SELECT COUNT(*) AS n FROM signups ${where.sql}`)
+    .get(where.params) as { n: number }
+  const pageCount = Math.max(1, Math.ceil(total / pageSize))
   const page = Math.min(Math.max(1, Math.trunc(Number(query.page)) || 1), pageCount)
 
+  const rows = db
+    .prepare(`SELECT * FROM signups ${where.sql} ORDER BY ${SQL_ORDER[sort]} LIMIT @limit OFFSET @offset`)
+    .all({ ...where.params, limit: pageSize, offset: (page - 1) * pageSize }) as DbRow[]
+
   return {
-    items: filtered.slice((page - 1) * pageSize, page * pageSize),
-    total: filtered.length,
+    items: rows.map(rowToRecord),
+    total,
     page,
     pageSize,
     pageCount,
-    stats: buildStats(all)
+    stats: buildStats(db)
   }
 }
 
 /** 导出用：按同样的筛选与排序取出全部记录（不分页）。 */
 export async function collectSignups(query: SignupListQuery = {}): Promise<SignupRecord[]> {
-  const { filtered } = await snapshot(query)
-  return filtered
+  return selectAll(getDb(), query)
 }
 
 export async function updateSignup(id: string, patch: SignupPatch): Promise<SignupRecord> {
-  return withLock(async () => {
-    const records = await readStore()
-    const index = records.findIndex((record) => record.id === id)
-    if (index < 0) throw apiError(404, '找不到这条报名记录')
+  const db = getDb()
+  const current = db.prepare('SELECT * FROM signups WHERE id = ?').get(id) as DbRow | undefined
+  if (!current) throw apiError(404, '找不到这条报名记录')
 
-    const current = records[index]
-    const has = (key: string) => Object.prototype.hasOwnProperty.call(patch, key) && (patch as Record<string, unknown>)[key] !== undefined
+  const existing = rowToRecord(current)
+  const has = (key: string) =>
+    Object.prototype.hasOwnProperty.call(patch, key) && (patch as Record<string, unknown>)[key] !== undefined
 
-    const source: Record<string, unknown> = {}
-    for (const key of ['name', 'className', 'level', 'directions', 'custom', 'contact', 'note'] as const) {
-      if (has(key)) source[key] = (patch as Record<string, unknown>)[key]
-    }
+  const source: Record<string, unknown> = {}
+  for (const key of ['name', 'className', 'level', 'directions', 'custom', 'contact', 'note'] as const) {
+    if (has(key)) source[key] = (patch as Record<string, unknown>)[key]
+  }
 
-    const input = normalizeSignupInput(source, current)
-    const status = has('status') ? patch.status : current.status
-    if (!isSignupStatus(status)) throw apiError(400, '未知的报名状态')
+  const input = normalizeSignupInput(source, existing)
+  const status = has('status') ? patch.status : existing.status
+  if (!isSignupStatus(status)) throw apiError(400, '未知的报名状态')
 
-    const next: SignupRecord = {
-      ...current,
-      ...input,
-      status,
-      adminNote: has('adminNote') ? multiline(patch.adminNote, 500) : current.adminNote,
-      updatedAt: new Date().toISOString()
-    }
+  const next: SignupRecord = {
+    ...existing,
+    ...input,
+    status,
+    adminNote: has('adminNote') ? multiline(patch.adminNote, 500) : existing.adminNote,
+    updatedAt: new Date().toISOString()
+  }
 
-    records[index] = next
-    await writeStore(records)
-    return next
-  })
+  db.prepare(
+    `UPDATE signups SET
+       name = @name, class_name = @class_name, level = @level, directions = @directions,
+       custom = @custom, contact = @contact, note = @note, status = @status,
+       admin_note = @admin_note, updated_at = @updated_at
+     WHERE id = @id`
+  ).run(recordToParams(next))
+
+  return next
 }
 
 export async function deleteSignup(id: string): Promise<void> {
-  return withLock(async () => {
-    const records = await readStore()
-    const next = records.filter((record) => record.id !== id)
-    if (next.length === records.length) throw apiError(404, '找不到这条报名记录')
-    await writeStore(next)
-  })
+  const result = getDb().prepare('DELETE FROM signups WHERE id = ?').run(id)
+  if (result.changes === 0) throw apiError(404, '找不到这条报名记录')
 }
 
 // ---------------------------------------------------------------------------

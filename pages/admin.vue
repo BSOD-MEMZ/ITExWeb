@@ -530,7 +530,7 @@ onUnmounted(() => {
         </section>
 
         <p class="admin-foot">
-          数据存放于服务端 <code>.data/signups.json</code>（可用 <code>ITEX_DATA_DIR</code> 改目录，该文件已在 .gitignore 中忽略）。
+          数据存放于服务端 <code>.data/signups.db</code>（SQLite，可用 <code>ITEX_DATA_DIR</code> 改目录，已在 .gitignore 中忽略）。
           删除操作不可恢复，建议定期导出 CSV 备份。
         </p>
       </main>

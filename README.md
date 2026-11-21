@@ -86,16 +86,14 @@ ITEx/
 
 ### 数据存在哪里
 
-`server/utils/signupStore.ts` 是唯一的读写入口，数据落在项目根目录的 `.data/signups.json`（已在 `.gitignore` 中忽略，可用环境变量 `ITEX_DATA_DIR` 换目录）：
+`server/utils/signupStore.ts` 是唯一的读写入口，数据存在 **SQLite** 里：`<ITEX_DATA_DIR>/signups.db`，默认项目根目录下的 `.data/`（已在 `.gitignore` 中忽略）。
 
-```json
-{ "version": 2, "updatedAt": "2026-11-20T06:00:00.000Z", "records": [ /* ... */ ] }
-```
-
-- 写入是「临时文件 + rename」的原子替换，所有「读 → 改 → 写」都串行排队，并发提交不会互相覆盖；文件损坏时先备份成 `signups.corrupt-*.json` 再重建，不会静默清空。
-- 每条记录包含表单字段、编号（`ITEX-2026-0001`，取已用最大值 +1，不会因为删记录而撞号）、`status`（`pending` / `contacted` / `accepted` / `archived`）、`adminNote`（仅后台可见）、`createdAt`、`updatedAt`。
-- 旧版纯数组格式在读取时自动补默认字段，下次写入升级成 v2，不需要手动迁移。
-- 只支持单进程部署；如果以后上 PM2 cluster 或多实例，需要把这一层换成数据库或加文件锁。
+- 用 [better-sqlite3](https://github.com/WiseLibs/better-sqlite3)（原生模块，同步 API）。单文件数据库、不需要额外的常驻服务；开了 WAL + `busy_timeout=5000`，多进程部署也不会丢写。
+- 表 `signups` 一条记录一行，`directions` 存成 `code,web` 这样的逗号串，筛选用 `,id,` 做边界匹配。
+- 每条记录包含表单字段、编号、`status`（`pending` / `contacted` / `accepted` / `archived`）、`adminNote`（仅后台可见）、`createdAt`、`updatedAt`。
+- **编号规则**：形如 `ITEX-2026-0021`。取当年已用最大值 +1，不会因为删记录而撞号；`0000–0020` 是预留段（留给社内手工录入），自动编号从 **0021** 起，每年重新计数。
+- **旧数据迁移**：首次启动时如果发现同目录下有旧的 `signups.json`，会自动导入（`INSERT OR IGNORE`，重复执行安全），导入成功后把旧文件改名成 `signups.json.imported-<时间戳>` 存档。
+- `better-sqlite3` 是原生模块：`npm install` 时需要允许它跑安装脚本（`package.json` 的 `allowScripts` 已经放行）。换机器 / 换 Node 大版本后如果报 `Could not locate the bindings file`，执行 `npm rebuild better-sqlite3`。
 
 ### 提交失败时
 
@@ -127,7 +125,7 @@ NUXT_ADMIN_PASSWORD=... NUXT_ADMIN_SESSION_SECRET=... node .output/server/index.
 | --- | --- | --- |
 | `NUXT_ADMIN_PASSWORD` | 是 | 后台登录密码。留空 = 后台停用。 |
 | `NUXT_ADMIN_SESSION_SECRET` | 否 | 会话签名密钥；不填则从密码派生，改密码会让所有已登录会话立即失效。 |
-| `ITEX_DATA_DIR` | 否 | 报名数据目录，默认 `./.data`。 |
+| `ITEX_DATA_DIR` | 否 | 报名数据目录（存放 `signups.db`），默认 `./.data`。 |
 
 登录成功后下发 `httpOnly` + `SameSite=Lax` 的签名 cookie，有效期 8 小时，服务端不用存 session；登录失败按 IP 限流（10 分钟内最多错 10 次，之后每次再错冷却 60 秒）。**静态托管（`npm run generate`）跑不了后台**，需要 Node 环境（`npm run build` + `node .output/server/index.mjs`，或支持 Node 的托管平台）。
 
