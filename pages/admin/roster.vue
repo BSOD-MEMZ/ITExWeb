@@ -674,7 +674,9 @@ onUnmounted(() => {
                 <td class="col-dirs" data-label="想参与">
                   <span v-for="label in directionLabels(record)" :key="label">{{ label }}</span>
                 </td>
-                <td class="col-contact" data-label="联系方式">{{ record.contact }}</td>
+                <td class="col-contact" data-label="联系方式">
+                  <ContactTag :contact="record.contact" />{{ record.contact }}
+                </td>
                 <td class="col-time" data-label="提交时间">{{ adminFormatTime(record.createdAt) }}</td>
                 <td data-label="状态">
                   <select

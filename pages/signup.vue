@@ -239,7 +239,10 @@ function formatTime(iso: string) {
                   </span>
                 </dd>
               </div>
-              <div class="receipt-row"><dt>联系方式</dt><dd>{{ receipt.contact }}</dd></div>
+              <div class="receipt-row">
+                <dt>联系方式</dt>
+                <dd><ContactTag :contact="receipt.contact" />{{ receipt.contact }}</dd>
+              </div>
               <div v-if="receipt.note" class="receipt-row"><dt>其它信息</dt><dd>{{ receipt.note }}</dd></div>
               <div class="receipt-row"><dt>提交时间</dt><dd>{{ formatTime(receipt.createdAt) }}</dd></div>
             </dl>

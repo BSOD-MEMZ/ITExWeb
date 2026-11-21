@@ -65,6 +65,7 @@ ITEx/
 ├─ server/api/          # 报名提交接口与 /api/admin/* 管理接口
 ├─ server/utils/        # signupStore（报名持久化）、adminSession（后台会话）、apiError（统一错误）
 ├─ utils/signupOffline.ts # 提交失败时的本机待补交队列
+├─ utils/contact.ts      # 联系方式类型识别（手机号 / 邮箱 / QQ 号 / 其他）
 ├─ public/fonts/        # Cubic（正文与等宽）、Nano（标题）字体文件
 ├─ public/images/       # 水原雫等公开站点素材
 ├─ app.vue              # Nuxt 根组件
@@ -150,6 +151,7 @@ NUXT_ADMIN_PASSWORD=... NUXT_ADMIN_SESSION_SECRET=... node .output/server/index.
 
 **名单页：找到想找的人**
 - 关键字搜索：姓名 / 班级 / 联系方式 / 编号 / 备注 / 自定义方向。
+- 联系方式前会自动标一个类型标签（手机号 / 邮箱 / QQ 号 / 其他），一眼看出该发短信、发邮件还是在 QQ 里搜；只识别号码的样子，认不出来的一律算「其他」，存下来的原值不变。
 - 下拉筛选：状态、方向、能力、年级（班级前两位，带各年级人数）、提交日期区间。
 - 快捷筛选：待处理 / 已入社 / 今天 / 近 7 天 / 疑似重复。
 - 五种排序：最新提交、最早提交、最近改动、能力高→低、按姓名（拼音序）。
